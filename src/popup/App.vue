@@ -5,6 +5,16 @@
       <div class="popup-header">
         <img src="../assets/logo.svg" alt="Logo" class="popup-logo" />
         <h1 class="popup-title">Dijkstra Cards</h1>
+        <Button
+          icon="pi pi-external-link"
+          text
+          rounded
+          size="small"
+          class="open-window-btn"
+          title="Open in new window"
+          aria-label="Open in new window"
+          @click="onOpenInWindow"
+        />
       </div>
 
       <!-- Hello World Card -->
@@ -53,6 +63,15 @@ function onGetStarted() {
   // Open extension options page or any URL
   chrome.tabs.create({ url: 'https://github.com/SerafAC/dijkstra-cards' })
 }
+
+function onOpenInWindow() {
+  chrome.windows.create({
+    url: chrome.runtime.getURL('src/popup/index.html'),
+    type: 'popup',
+    width: 400,
+    height: 500,
+  })
+}
 </script>
 
 <style scoped>
@@ -74,6 +93,10 @@ function onGetStarted() {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.open-window-btn {
+  margin-left: auto;
 }
 
 .popup-logo {
