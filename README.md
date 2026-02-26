@@ -38,34 +38,34 @@ dijkstra-cards/
 
 ```bash
 # Install dependencies (icons are auto-generated via postinstall)
-npm install
+pnpm install
 
 # Development – Chrome (watch mode, outputs to dist/chrome/)
-npm run dev
+pnpm run dev
 
 # Development – Firefox (watch mode, outputs to dist/firefox/)
-npm run dev:firefox
+pnpm run dev:firefox
 
 # Production build – Chrome
-npm run build
+pnpm run build
 
 # Production build – Firefox
-npm run build:firefox
+pnpm run build:firefox
 
 # TypeScript type-check
-npm run type-check
+pnpm run type-check
 ```
 
 ### Load the extension
 
 **Chrome / Chromium**
-1. `npm run build`
+1. `pnpm run build`
 2. Open `chrome://extensions/`
 3. Enable **Developer mode**
 4. Click **Load unpacked** → select `dist/chrome/`
 
 **Firefox**
-1. `npm run build:firefox`
+1. `pnpm run build:firefox`
 2. Open `about:debugging#/runtime/this-firefox`
 3. Click **Load Temporary Add-on…** → select any file inside `dist/firefox/`
 
@@ -78,7 +78,7 @@ publishing.
 
 You can re-run the generator at any time:
 ```bash
-npm run generate-icons
+pnpm run generate-icons
 ```
 
 ### Extension name & IDs
@@ -103,7 +103,7 @@ Then create `src/content-script/index.ts`.
 The background script uses `chrome.*` which works in all Chromium browsers.
 For true cross-browser `browser.*` with Promises, install the polyfill:
 ```bash
-npm install webextension-polyfill
+pnpm install webextension-polyfill
 ```
 Then in any script:
 ```ts
@@ -113,4 +113,4 @@ await browser.tabs.query({ active: true })
 
 ## License
 
-MIT
+GNU General Public License v3.0
