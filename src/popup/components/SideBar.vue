@@ -80,7 +80,11 @@ watch(isDarkMode, (val) => {
   align-items: stretch;
   border-radius: 20px;
 
-  background-color: var(--p-surface-900);
+  background-color: var(--p-surface-100);
+
+  :global(.app-dark) & {
+    background-color: var(--p-surface-950);
+  }
 
   .logo {
     border-radius: 20px 20px 0 0;
