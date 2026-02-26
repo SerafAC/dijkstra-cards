@@ -22,6 +22,17 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 })
 
+// Open popup in a new window when the extension icon is clicked
+chrome.action.onClicked.addListener(() => {
+  const popupUrl = chrome.runtime.getURL('src/popup/index.html')
+  chrome.windows.create({
+    url: popupUrl,
+    type: 'popup',
+    width: 800,
+    height: 600,
+  })
+})
+
 // Example: listen for messages from the popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Dijkstra Cards] Message received:', message, 'from:', sender)
