@@ -1,19 +1,41 @@
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
+import Tooltip from 'primevue/tooltip'
+import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
 import 'primeicons/primeicons.css'
+import router from './router'
 import App from './App.vue'
+
+const myPreset = definePreset(Aura, {
+  semantic: {
+    primary: {
+      50: '{red.50}',
+      100: '{red.100}',
+      200: '{red.200}',
+      300: '{red.300}',
+      400: '{red.400}',
+      500: '{red.500}',
+      600: '{red.600}',
+      700: '{red.700}',
+      800: '{red.800}',
+      900: '{red.900}',
+      950: '{red.950}',
+    },
+  },
+})
 
 const app = createApp(App)
 
+app.use(router)
 app.use(PrimeVue, {
   theme: {
-    preset: Aura,
+    preset: myPreset,
     options: {
-      // Set to '.dark-mode' class or 'system' to enable dark mode support
       darkModeSelector: 'system',
     },
   },
 })
+app.directive('tooltip', Tooltip)
 
 app.mount('#app')
