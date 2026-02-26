@@ -24,6 +24,7 @@ export default defineConfig({
     webExtension({
       manifest: generateManifest,
       browser,
+      additionalInputs: ['src/popup/index.html'],
     }),
   ],
   build: {
