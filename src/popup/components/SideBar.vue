@@ -82,8 +82,8 @@ watch(isDarkMode, (val) => {
 
   background-color: var(--p-surface-100);
 
-  :global(.app-dark) & {
-    background-color: var(--p-surface-950);
+  .app-dark & {
+    background-color: var(--p-surface-900);
   }
 
   .logo {
