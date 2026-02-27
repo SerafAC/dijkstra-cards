@@ -1,9 +1,112 @@
 import type { Card, Seller } from '../types/models'
+import { GetCachedSellers } from './cardmarketService'
+
+interface SellerCoverage {
+  sellerKey: string
+  cardSellers: Map<string, Seller>
+}
+
+function sellerKey(listing: Seller): string {
+  const name = listing.SellerName.trim().toLowerCase()
+  const country = listing.SellerCountry.trim().toLowerCase()
+  if (!country) return name
+  return `${name}|${country}`
+}
+
+function buildSellerCoverage(offers: Map<string, Seller[]>): Map<string, SellerCoverage> {
+  const coverage = new Map<string, SellerCoverage>()
+
+  for (const [cardId, sellers] of offers) {
+    for (const seller of sellers) {
+      const key = sellerKey(seller)
+      let entry = coverage.get(key)
+      if (!entry) {
+        entry = {
+          sellerKey: key,
+          cardSellers: new Map(),
+        }
+        coverage.set(key, entry)
+      }
+
+      const current = entry.cardSellers.get(cardId)
+      if (!current || seller.Price < current.Price) {
+        entry.cardSellers.set(cardId, seller)
+      }
+    }
+  }
+
+  return coverage
+}
+
+function selectBestSeller(
+  coverage: Map<string, SellerCoverage>,
+  assigned: Set<string>,
+): [string, number] {
+  let bestKey = ''
+  let bestCount = 0
+  let bestPrice = Infinity
+
+  for (const [key, entry] of coverage) {
+    let count = 0
+    let totalPrice = 0
+
+    for (const [cardId, seller] of entry.cardSellers) {
+      if (assigned.has(cardId)) continue
+      count++
+      totalPrice += seller.Price
+    }
+
+    if (count === 0) continue
+
+    if (count > bestCount || (count === bestCount && totalPrice < bestPrice)) {
+      bestKey = key
+      bestCount = count
+      bestPrice = totalPrice
+    }
+  }
+
+  return [bestKey, bestCount]
+}
 
 export async function FindOptimalSellers(
-  _cards: Card[],
+  cards: Card[],
 ): Promise<Record<string, Seller>> {
-  // Mock: no real seller assignment logic yet
-  console.log('[Mock] FindOptimalSellers called')
-  return {}
+  if (cards.length === 0) {
+    throw new Error('no cards provided for assignment')
+  }
+
+  const optimalCardSeller: Record<string, Seller> = {}
+  const offers = new Map<string, Seller[]>()
+
+  for (const card of cards) {
+    const [cardSellers, ok] = GetCachedSellers(card.Id)
+    if (ok && cardSellers.length > 0) {
+      offers.set(card.Id, cardSellers)
+    }
+  }
+
+  const coverage = buildSellerCoverage(offers)
+  const assigned = new Set<string>()
+
+  while (assigned.size < cards.length) {
+    const [bestKey, count] = selectBestSeller(coverage, assigned)
+    if (!bestKey || count === 0) break
+
+    const sellerInfo = coverage.get(bestKey)!
+    for (const [cardId, seller] of sellerInfo.cardSellers) {
+      if (assigned.has(cardId)) continue
+      optimalCardSeller[cardId] = seller
+      assigned.add(cardId)
+    }
+  }
+
+  // Assign remaining cards to their first available seller
+  for (const card of cards) {
+    if (assigned.has(card.Id)) continue
+    const cardOffers = offers.get(card.Id)
+    if (!cardOffers || cardOffers.length === 0) continue
+    optimalCardSeller[card.Id] = cardOffers[0]
+  }
+
+  return optimalCardSeller
 }

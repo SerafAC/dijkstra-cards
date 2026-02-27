@@ -1,4 +1,5 @@
 import type { Card } from '../types/models'
+import { BuildCardPageURL } from './cardmarketService'
 
 let storedCards: Card[] = []
 
@@ -61,6 +62,9 @@ export const CardService = {
         try {
           const text = await file.text()
           storedCards = parseCSV(text)
+          for (const card of storedCards) {
+            card.Link = BuildCardPageURL(card)
+          }
           resolve(storedCards.length > 0)
         } catch {
           resolve(false)
