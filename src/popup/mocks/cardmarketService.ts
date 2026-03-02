@@ -252,7 +252,7 @@ async function queryCardPage(query: CardQuery): Promise<string> {
 
   const targetURL = BuildSearchURL(query)
 
-  return await fetchViaTab(targetURL)
+  return await fetchViaTab(targetURL, (html) => html.includes('Sammelkartenmarkt'))
 }
 
 // --- Public API ---
