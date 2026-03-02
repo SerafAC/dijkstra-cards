@@ -1,6 +1,6 @@
 # Dijkstra Cards
 
-A carts shopping cart optimizer.
+A cards shopping cart optimizer.
 
 ## Stack
 
