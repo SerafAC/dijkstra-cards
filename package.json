@@ -1,7 +1,7 @@
 {
   "name": "dijkstra-cards",
   "version": "0.1.0",
-  "description": "Vue 3 browser extension boilerplate with PrimeVue (Chrome & Firefox)",
+  "description": "A carts shopping cart optimizer.",
   "type": "module",
   "scripts": {
     "generate-icons": "node scripts/generate-icons.mjs",
@@ -9,8 +9,7 @@
     "dev:firefox": "cross-env TARGET_BROWSER=firefox vite build --watch",
     "build": "vite build",
     "build:firefox": "cross-env TARGET_BROWSER=firefox vite build",
-    "type-check": "vue-tsc --noEmit",
-    "postinstall": "node scripts/generate-icons.mjs"
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@primevue/themes": "^4.2.5",

@@ -1,7 +1,6 @@
 # Dijkstra Cards
 
-A **Vue 3** browser extension boilerplate with **PrimeVue** for a great look and
-feel, targeting both **Chrome** (Manifest V3) and **Firefox** (MV3, 109+).
+A carts shopping cart optimizer.
 
 ## Stack
 
@@ -17,9 +16,7 @@ feel, targeting both **Chrome** (Manifest V3) and **Firefox** (MV3, 109+).
 ```
 dijkstra-cards/
 ├── public/
-│   └── icons/               # Auto-generated placeholder icons (replace before publishing)
-├── scripts/
-│   └── generate-icons.mjs   # Generates solid-color PNG icons (no deps)
+│   └── icons/               # Addon icons
 ├── src/
 │   ├── assets/
 │   │   └── logo.svg         # Extension logo used in the popup
@@ -68,36 +65,6 @@ pnpm run type-check
 1. `pnpm run build:firefox`
 2. Open `about:debugging#/runtime/this-firefox`
 3. Click **Load Temporary Add-on…** → select any file inside `dist/firefox/`
-
-## Customisation
-
-### Icons
-The `public/icons/` folder contains auto-generated placeholder icons. Replace
-them with your own 16×16, 32×32, 48×48 and 128×128 PNG files before
-publishing.
-
-You can re-run the generator at any time:
-```bash
-pnpm run generate-icons
-```
-
-### Extension name & IDs
-- Update `name`, `version`, and `description` in both `package.json` and
-  `manifest.json`.
-- Set the Firefox extension ID in `manifest.json` →
-  `browser_specific_settings.gecko.id`.
-
-### Adding content scripts
-Add a content script entry to `manifest.json`:
-```json
-"content_scripts": [
-  {
-    "matches": ["<all_urls>"],
-    "js": ["src/content-script/index.ts"]
-  }
-]
-```
-Then create `src/content-script/index.ts`.
 
 ### Cross-browser API (`browser.*` vs `chrome.*`)
 The background script uses `chrome.*` which works in all Chromium browsers.
