@@ -92,7 +92,9 @@ async function pollUntilPredicate(
     }
 
     const html = await readTabHtml(tabId)
-    if (predicate(html)) return html
+    if (predicate(html)) {
+      return html
+    }
   }
 
   throw new Error(`Predicate not satisfied after ${POLL_TIMEOUT_MS / 60_000} minutes`)
