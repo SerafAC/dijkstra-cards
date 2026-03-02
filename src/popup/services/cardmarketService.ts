@@ -1,5 +1,5 @@
 import type { Card, CardQuery, Seller, SellerFetchStatus } from '../types/models'
-import { openBrowsingTab, closeBrowsingTab, fetchViaTab } from '../tabFetchService'
+import { openBrowsingTab, closeBrowsingTab, fetchViaTab } from './tabFetchService'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
 const defaultRootURL = 'https://www.cardmarket.com'
