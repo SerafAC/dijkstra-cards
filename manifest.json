@@ -20,6 +20,7 @@
   },
   "background": {
     "service_worker": "src/background/index.ts",
+    "scripts": ["src/background/index.ts"],
     "type": "module"
   },
   "browser_specific_settings": {

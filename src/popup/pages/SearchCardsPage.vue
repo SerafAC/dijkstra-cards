@@ -83,6 +83,10 @@ function buildQueryFromRow(row: Card): CardQuery {
   }
 }
 
+function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
 async function assignSellers() {
   searchAttempted.value = true
 
@@ -114,6 +118,8 @@ async function assignSellers() {
       } finally {
         fetchProgress.value += 1
       }
+
+      await delay(1000);
     }
 
     assignments.value = await FindOptimalSellers(selectedCards.value)

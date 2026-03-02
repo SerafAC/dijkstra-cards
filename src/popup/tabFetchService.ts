@@ -73,7 +73,9 @@ async function pollUntilPredicate(
     }
 
     const html = await readTabHtml(tabId)
-    if (predicate(html)) return html
+    if (predicate(html)) {
+      return html
+    }
   }
 
   throw new Error(`Predicate not satisfied after ${POLL_TIMEOUT_MS / 60_000} minutes`)
@@ -104,7 +106,9 @@ export async function fetchViaTab(
       return html
     }
 
-    return await pollUntilPredicate(tabId, predicate)
+    const result = await pollUntilPredicate(tabId, predicate)
+    await sleep(5000)
+    return result
   } finally {
     chrome.tabs.remove(tabId)
   }
