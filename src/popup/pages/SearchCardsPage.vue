@@ -3,7 +3,7 @@ import { computed, Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { clearSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { FindOptimalSellers } from '../mocks/sellerAssignmentService'
-import { GetCardSellers, GetFetchStatuses } from '../mocks/cardmarketService'
+import { GetCardSellers, GetFetchStatuses, closeBrowsingSession } from '../mocks/cardmarketService'
 import { Browser } from '../mocks/browser'
 import type { Card, CardQuery, Seller, SellerFetchStatus } from '../types/models'
 import Button from 'primevue/button'
@@ -131,6 +131,7 @@ async function assignSellers() {
     console.log('>>> error: ', err)
     assignments.value = {}
   } finally {
+    closeBrowsingSession()
     isSearching.value = false
     currentCardName.value = ''
   }

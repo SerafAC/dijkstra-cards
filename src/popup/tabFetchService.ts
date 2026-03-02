@@ -3,7 +3,7 @@ const POLL_INTERVAL_MS = 2_000
 const POLL_TIMEOUT_MS = 10 * 60 * 1_000 // 10 minutes
 const FOCUS_TAB_ON_RETRY = 2 // focus the tab for the user after this many retries
 
-function openTab(url: string): Promise<number> {
+function createTab(url: string): Promise<number> {
   return new Promise((resolve, reject) => {
     chrome.tabs.create({ url, active: false }, (tab) => {
       if (chrome.runtime.lastError || tab.id == null) {
@@ -30,6 +30,25 @@ function waitForTabLoad(tabId: number): Promise<void> {
     }
 
     chrome.tabs.onUpdated.addListener(onUpdated)
+  })
+}
+
+function navigateTab(tabId: number, url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId },
+        func: (targetUrl: string) => { location.href = targetUrl },
+        args: [url],
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message))
+          return
+        }
+        resolve()
+      },
+    )
   })
 }
 
@@ -82,34 +101,43 @@ async function pollUntilPredicate(
 }
 
 /**
- * Opens a URL in a background tab, waits for it to fully load, and returns
- * the page HTML.
+ * Opens a new background tab at the given root URL and waits for it to load.
+ * Returns the tab ID for reuse with fetchViaTab.
+ */
+export async function openBrowsingTab(rootUrl: string): Promise<number> {
+  const tabId = await createTab(rootUrl)
+  await waitForTabLoad(tabId)
+  return tabId
+}
+
+/**
+ * Closes a tab previously opened with openBrowsingTab.
+ */
+export function closeBrowsingTab(tabId: number): void {
+  chrome.tabs.remove(tabId)
+}
+
+/**
+ * Navigates an existing tab to `url` by setting `location.href` (so the
+ * Referer header points to the previous page on the same domain), waits for
+ * the page to load, and returns the HTML.
  *
  * If `predicate` is provided the HTML must pass it before being returned.
- * On failure the tab is polled every ${POLL_INTERVAL_MS}ms for up to
- * ${POLL_TIMEOUT_MS / 60_000} minutes. After the ${FOCUS_TAB_ON_RETRY}nd
+ * On failure the tab is polled every 2s for up to 10 minutes. After the 2nd
  * retry the tab is focused so the user can intervene (e.g. solve a CAPTCHA).
- *
- * Use this instead of fetch() to bypass CORS restrictions.
  */
 export async function fetchViaTab(
+  tabId: number,
   url: string,
   predicate?: (html: string) => boolean,
 ): Promise<string> {
-  const tabId = await openTab(url)
+  await navigateTab(tabId, url)
+  await waitForTabLoad(tabId)
 
-  try {
-    await waitForTabLoad(tabId)
-    const html = await readTabHtml(tabId)
-
-    if (!predicate || predicate(html)) {
-      return html
-    }
-
-    const result = await pollUntilPredicate(tabId, predicate)
-    await sleep(5000)
-    return result
-  } finally {
-    chrome.tabs.remove(tabId)
+  const html = await readTabHtml(tabId)
+  if (!predicate || predicate(html)) {
+    return html
   }
+
+  return await pollUntilPredicate(tabId, predicate)
 }
