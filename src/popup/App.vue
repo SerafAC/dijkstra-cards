@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import SideBar from './components/SideBar.vue'
 
-const router = useRouter()
 </script>
 
 <template>
   <main>
-    <SideBar v-if="router.currentRoute.value.fullPath != '/'" />
+    <SideBar />
     <RouterView class="router-view" />
   </main>
 </template>
