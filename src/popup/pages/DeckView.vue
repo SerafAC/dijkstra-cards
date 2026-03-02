@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { CardService } from '../mocks/cardService'
+import { CardService } from '../services/cardService'
 import { saveSelectedCards } from '../stores/selectedCards'
-import { Browser } from '../mocks/browser'
+import { Browser } from '../services/browser'
 import type { Card } from '../types/models'
 import Message from 'primevue/message'
 import Button from 'primevue/button'

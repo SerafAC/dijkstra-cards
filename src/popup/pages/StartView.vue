@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { CardService } from '../mocks/cardService'
+import { CardService } from '../services/cardService'
 import Image from 'primevue/image'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
