@@ -263,15 +263,29 @@ export function closeBrowsingSession(): void {
 
 // --- Page fetching ---
 
+const SEARCH_INTERVAL_MS = 5_000
+let lastFetchTime = 0
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function queryCardPage(query: CardQuery): Promise<string> {
   if (!query.Card.CardName.trim()) {
     throw new Error('card name is required')
   }
 
+  const elapsed = Date.now() - lastFetchTime
+  if (lastFetchTime > 0 && elapsed < SEARCH_INTERVAL_MS) {
+    await sleep(SEARCH_INTERVAL_MS - elapsed)
+  }
+
   const tabId = await ensureBrowsingTab()
   const targetURL = BuildSearchURL(query)
 
-  return await fetchViaTab(tabId, targetURL, (html) => html.includes('Sammelkartenmarkt'))
+  const html = await fetchViaTab(tabId, targetURL, (h) => h.includes('Sammelkartenmarkt'))
+  lastFetchTime = Date.now()
+  return html
 }
 
 // --- Public API ---
