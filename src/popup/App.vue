@@ -13,7 +13,7 @@ import SideBar from './components/SideBar.vue'
 <style scoped lang="scss">
 main {
   display: flex;
-  width: 100vw;
+  // width: 100vw;
 }
 .router-view {
   flex-grow: 2;

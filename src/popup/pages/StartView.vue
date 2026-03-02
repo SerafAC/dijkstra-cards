@@ -28,37 +28,50 @@ async function onOpenDeck() {
 
 <template>
   <div class="page">
-    <Image class="banner" src="/baner.png" width="100%" />
-
-    <Message v-if="error" severity="error" :closable="true" @close="error = ''">
-      {{ error }}
-    </Message>
-
-    <div v-if="!loading" class="card actions">
-      <Button label="Open Deck Export" icon="pi pi-upload" @click="onOpenDeck" :loading="loading" />
+    <div class="header">
+      <Image class="banner" src="/baner.png" width="100%" />
     </div>
+    <div class="content">
+      <Message v-if="error" severity="error" :closable="true" @close="error = ''">
+        {{ error }}
+      </Message>
 
-    <div class="status" v-if="loading">
-      <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
-      <span style="margin-left: 8px">Loading CSV...</span>
+      <div v-if="!loading" class="card actions">
+        <Button label="Open Deck Export" icon="pi pi-upload" @click="onOpenDeck" :loading="loading" />
+      </div>
+
+      <div class="status" v-if="loading">
+        <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
+        <span style="margin-left: 8px">Loading CSV...</span>
+      </div>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .page {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
+  gap: 2rem;
+  margin: 20px;
+  height: 90vh;
+  border-radius: 0 0 20px 20px;
+
+  background-color: var(--p-surface-100);
+
+  .app-dark & {
+    background-color: var(--p-surface-900);
+  }
+
+  .content {
+    display: flex;
+    justify-content: space-around;
+    flex-grow: 1;
+  }
 }
 .banner {
   width: 70%;
-}
-.card.actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
 }
 </style>

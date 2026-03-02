@@ -39,6 +39,15 @@ watch(isDarkMode, (val) => {
   <div class="sidebar-container sidebar-size">
     <img class="logo" src="/logo-vert.png" width="100%" />
 
+    <div class="theme-section">
+      <p class="nav-label">Theme</p>
+      <div class="theme-toggle">
+        <i class="pi pi-sun" />
+        <ToggleSwitch v-model="isDarkMode" />
+        <i class="pi pi-moon" />
+      </div>
+    </div>
+
     <nav class="nav-section">
       <p class="nav-label">Views</p>
       <Button
@@ -51,15 +60,6 @@ watch(isDarkMode, (val) => {
         <span>{{ entry.label }}</span>
       </Button>
     </nav>
-
-    <div class="theme-section">
-      <p class="nav-label">Theme</p>
-      <div class="theme-toggle">
-        <i class="pi pi-sun" />
-        <ToggleSwitch v-model="isDarkMode" />
-        <i class="pi pi-moon" />
-      </div>
-    </div>
   </div>
   <div class="sidebar-size"></div>
 </template>
@@ -67,7 +67,7 @@ watch(isDarkMode, (val) => {
 <style scoped lang="scss">
 .sidebar-size {
   width: 150px;
-  height: calc(100vh - 40px);
+  height: calc(100% - 60px);
   max-width: 150px;
   min-width: 150px;
   margin: 20px;
@@ -109,7 +109,7 @@ watch(isDarkMode, (val) => {
 }
 
 .theme-section {
-  margin-top: auto;
+  margin-top: 32px;
   padding: 0 0.75rem 1rem;
 }
 
