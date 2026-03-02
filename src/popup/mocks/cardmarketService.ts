@@ -1,7 +1,8 @@
 import type { Card, CardQuery, Seller, SellerFetchStatus } from '../types/models'
-import { fetchViaTab } from '../tabFetchService'
+import { openBrowsingTab, closeBrowsingTab, fetchViaTab } from '../tabFetchService'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
+const defaultRootURL = 'https://www.cardmarket.com'
 
 // --- Cache ---
 
@@ -243,6 +244,23 @@ export function ParseSellerListings(body: string): Seller[] {
   return listings
 }
 
+// --- Browsing session ---
+
+let browsingTabId: number | null = null
+
+async function ensureBrowsingTab(): Promise<number> {
+  if (browsingTabId != null) return browsingTabId
+  browsingTabId = await openBrowsingTab(defaultRootURL)
+  return browsingTabId
+}
+
+export function closeBrowsingSession(): void {
+  if (browsingTabId != null) {
+    closeBrowsingTab(browsingTabId)
+    browsingTabId = null
+  }
+}
+
 // --- Page fetching ---
 
 async function queryCardPage(query: CardQuery): Promise<string> {
@@ -250,9 +268,10 @@ async function queryCardPage(query: CardQuery): Promise<string> {
     throw new Error('card name is required')
   }
 
+  const tabId = await ensureBrowsingTab()
   const targetURL = BuildSearchURL(query)
 
-  return await fetchViaTab(targetURL, (html) => html.includes('Sammelkartenmarkt'))
+  return await fetchViaTab(tabId, targetURL, (html) => html.includes('Sammelkartenmarkt'))
 }
 
 // --- Public API ---
