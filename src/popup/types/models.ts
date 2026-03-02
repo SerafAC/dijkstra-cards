@@ -28,3 +28,10 @@ export interface SellerFetchStatus {
   sellersFound: boolean
   fetchAttempted: boolean
 }
+
+export interface RecentDeck {
+  fileName: string
+  csvContent: string
+  cardCount: number
+  loadedAt: string
+}

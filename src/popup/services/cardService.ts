@@ -1,5 +1,6 @@
 import type { Card } from '../types/models'
 import { BuildCardPageURL } from './cardmarketService'
+import { StorageService } from './storageService'
 
 let storedCards: Card[] = []
 
@@ -46,6 +47,17 @@ function parseCSV(text: string): Card[] {
   return cards
 }
 
+async function loadFromCSV(csvContent: string, fileName: string): Promise<boolean> {
+  const cards = parseCSV(csvContent)
+  if (cards.length === 0) return false
+  storedCards = cards
+  for (const card of storedCards) {
+    card.Link = BuildCardPageURL(card)
+  }
+  await StorageService.addRecentDeck(fileName, csvContent, storedCards.length)
+  return true
+}
+
 export const CardService = {
   LoadCards(): Promise<boolean> {
     return new Promise((resolve) => {
@@ -61,11 +73,7 @@ export const CardService = {
         }
         try {
           const text = await file.text()
-          storedCards = parseCSV(text)
-          for (const card of storedCards) {
-            card.Link = BuildCardPageURL(card)
-          }
-          resolve(storedCards.length > 0)
+          resolve(await loadFromCSV(text, file.name))
         } catch {
           resolve(false)
         }
@@ -74,6 +82,14 @@ export const CardService = {
       input.addEventListener('cancel', () => resolve(false))
       input.click()
     })
+  },
+
+  async LoadFromRecent(csvContent: string, fileName: string): Promise<boolean> {
+    try {
+      return await loadFromCSV(csvContent, fileName)
+    } catch {
+      return false
+    }
   },
 
   GetCards(): Promise<Card[]> {

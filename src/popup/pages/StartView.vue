@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CardService } from '../services/cardService'
+import { StorageService } from '../services/storageService'
+import type { RecentDeck } from '../types/models'
 import Image from 'primevue/image'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
+const recentDecks = ref<RecentDeck[]>([])
+
+onMounted(async () => {
+  recentDecks.value = await StorageService.getRecentDecks()
+})
 
 async function onOpenDeck() {
   loading.value = true
@@ -17,12 +26,42 @@ async function onOpenDeck() {
     const result = await CardService.LoadCards()
     loading.value = false
     if (result) {
+      recentDecks.value = await StorageService.getRecentDecks()
       router.push({ path: '/deck' })
     }
   } catch (er) {
     error.value = er as string
     loading.value = false
   }
+}
+
+async function onOpenRecent(deck: RecentDeck) {
+  loading.value = true
+  try {
+    const result = await CardService.LoadFromRecent(deck.csvContent, deck.fileName)
+    loading.value = false
+    if (result) {
+      router.push({ path: '/deck' })
+    } else {
+      error.value = `Failed to load "${deck.fileName}".`
+    }
+  } catch (er) {
+    error.value = er as string
+    loading.value = false
+  }
+}
+
+async function onRemoveRecent(deck: RecentDeck) {
+  await StorageService.removeRecentDeck(deck.fileName)
+  recentDecks.value = await StorageService.getRecentDecks()
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 </script>
 
@@ -44,6 +83,39 @@ async function onOpenDeck() {
         <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
         <span style="margin-left: 8px">Loading CSV...</span>
       </div>
+
+      <div v-if="!loading && recentDecks.length" class="recent-decks">
+        <h3 class="recent-title">Recent Decks</h3>
+        <DataTable :value="recentDecks" size="small" scrollable scrollHeight="flex">
+          <Column field="fileName" header="File" />
+          <Column field="cardCount" header="Cards" style="width: 5rem; text-align: center" />
+          <Column header="Opened" style="width: 8rem">
+            <template #body="{ data }">{{ formatDate(data.loadedAt) }}</template>
+          </Column>
+          <Column header="" style="width: 8rem">
+            <template #body="{ data }">
+              <div class="row-actions">
+                <Button
+                  icon="pi pi-folder-open"
+                  size="small"
+                  severity="secondary"
+                  text
+                  @click="onOpenRecent(data)"
+                  v-tooltip="'Open deck'"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  size="small"
+                  severity="danger"
+                  text
+                  @click="onRemoveRecent(data)"
+                  v-tooltip="'Remove from list'"
+                />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
     </div>
   </div>
 </template>
@@ -52,12 +124,13 @@ async function onOpenDeck() {
 .page {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
   margin: 20px;
-  height: 90vh;
+  min-height: 90vh;
   border-radius: 0 0 20px 20px;
+  padding-bottom: 20px;
 
   background-color: var(--p-surface-100);
 
@@ -67,11 +140,41 @@ async function onOpenDeck() {
 
   .content {
     display: flex;
-    justify-content: space-around;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 700px;
     flex-grow: 1;
   }
 }
+
 .banner {
   width: 70%;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.recent-decks {
+  width: 100%;
+
+  .recent-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--p-surface-700);
+
+    .app-dark & {
+      color: var(--p-surface-300);
+    }
+  }
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.25rem;
 }
 </style>
