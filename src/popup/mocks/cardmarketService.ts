@@ -1,4 +1,5 @@
 import type { Card, CardQuery, Seller, SellerFetchStatus } from '../types/models'
+import { fetchViaTab } from '../tabFetchService'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
 
@@ -251,12 +252,7 @@ async function queryCardPage(query: CardQuery): Promise<string> {
 
   const targetURL = BuildSearchURL(query)
 
-  const resp = await fetch(targetURL)
-  if (!resp.ok) {
-    throw new Error(`cardmarket request failed: ${resp.status}`)
-  }
-
-  return await resp.text()
+  return await fetchViaTab(targetURL)
 }
 
 // --- Public API ---
