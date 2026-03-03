@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, Ref, ref } from 'vue'
+import { computed, onMounted, Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { clearSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
 import { GetCardSellers, GetFetchStatuses, closeBrowsingSession } from '../services/cardmarketService'
+import { StorageService } from '../services/storageService'
 import { Browser } from '../services/browser'
-import type { Card, CardQuery, Seller, SellerFetchStatus } from '../types/models'
+import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '../types/models'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ProgressBar from 'primevue/progressbar'
+import MultiSelect from 'primevue/multiselect'
+import Select from 'primevue/select'
 
 const router = useRouter()
 const selectedCards = useSelectedCards()
@@ -20,6 +23,54 @@ const isSearching = ref(false)
 const searchAttempted = ref(false)
 const fetchProgress = ref(0)
 const currentCardName = ref('')
+
+const languageOptions = [
+  { label: 'English', value: 1 },
+  { label: 'French', value: 2 },
+  { label: 'German', value: 3 },
+  { label: 'Spanish', value: 4 },
+  { label: 'Italian', value: 5 },
+  { label: 'S-Chinese', value: 6 },
+  { label: 'Japanese', value: 7 },
+  { label: 'Portuguese', value: 8 },
+  { label: 'Russian', value: 9 },
+  { label: 'Korean', value: 10 },
+  { label: 'T-Chinese', value: 11 },
+]
+
+const conditionOptions = [
+  { label: 'Mint', value: 1 },
+  { label: 'Near Mint', value: 2 },
+  { label: 'Excellent', value: 3 },
+  { label: 'Good', value: 4 },
+  { label: 'Light Played', value: 5 },
+  { label: 'Played', value: 6 },
+]
+
+const selectedLanguages: Ref<number[]> = ref([])
+const selectedMinCondition: Ref<number | null> = ref(null)
+
+onMounted(async () => {
+  const saved = await StorageService.getCardFilters()
+  if (saved) {
+    selectedLanguages.value = saved.language ?? []
+    selectedMinCondition.value = saved.minCondition ?? null
+  }
+})
+
+async function saveFilters() {
+  const filters: CardFilters = {
+    language: selectedLanguages.value,
+    minCondition: selectedMinCondition.value,
+  }
+  await StorageService.saveCardFilters(filters)
+}
+
+async function clearSavedFilters() {
+  selectedLanguages.value = []
+  selectedMinCondition.value = null
+  await StorageService.saveCardFilters({ language: [], minCondition: null })
+}
 
 const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
@@ -76,10 +127,15 @@ function resetSelection() {
 }
 
 function buildQueryFromRow(row: Card): CardQuery {
+  const filters: CardFilters = {
+    language: selectedLanguages.value,
+    minCondition: selectedMinCondition.value,
+  }
   return {
     Card: row,
     Language: 'en',
     ShipmentDestination: '',
+    Filters: filters,
   }
 }
 
@@ -161,8 +217,47 @@ async function assignSellers() {
     </div>
 
     <div v-if="hasCards" class="results">
-      <div>
-        <!-- TODO: Query filters should be here -->
+      <div class="filters">
+        <div class="filter-group">
+          <label>Language</label>
+          <MultiSelect
+            v-model="selectedLanguages"
+            :options="languageOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Any language"
+            :maxSelectedLabels="3"
+          />
+        </div>
+        <div class="filter-group">
+          <label>Min Condition</label>
+          <Select
+            v-model="selectedMinCondition"
+            :options="conditionOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Any condition"
+            showClear
+          />
+        </div>
+        <div class="filter-actions">
+          <Button
+            icon="pi pi-save"
+            size="small"
+            severity="secondary"
+            outlined
+            v-tooltip="'Save filters as default'"
+            @click="saveFilters"
+          />
+          <Button
+            icon="pi pi-eraser"
+            size="small"
+            severity="danger"
+            outlined
+            v-tooltip="'Clear saved filters'"
+            @click="clearSavedFilters"
+          />
+        </div>
       </div>
 
       <Button
@@ -331,6 +426,29 @@ async function assignSellers() {
     padding: 10px;
     display: flex;
     justify-content: space-around;
+  }
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-color-secondary);
+    }
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 0.25rem;
   }
 }
 
