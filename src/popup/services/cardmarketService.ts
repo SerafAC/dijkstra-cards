@@ -1,4 +1,4 @@
-import type { Card, CardQuery, Seller, SellerFetchStatus } from '../types/models'
+import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '../types/models'
 import { openBrowsingTab, closeBrowsingTab, fetchViaTab } from './tabFetchService'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
@@ -65,10 +65,22 @@ export function BuildCardPageURL(card: Card): string {
   return `${defaultBaseURL}${setName}/${cardName}`
 }
 
+function buildFilterQueryString(filters?: CardFilters): string {
+  const params: string[] = []
+  if (filters?.language && filters.language.length > 0) {
+    params.push(`language=${filters.language.join(',')}`)
+  }
+  if (filters?.minCondition != null) {
+    params.push(`minCondition=${filters.minCondition}`)
+  }
+  return params.length > 0 ? `?${params.join('&')}` : ''
+}
+
 function BuildSearchURL(query: CardQuery): string {
   const cardName = encodeParam(query.Card.CardName)
   const editionName = encodeParam(query.Card.EditionName)
-  return `${defaultBaseURL}${editionName}/${cardName}`
+  const filterQS = buildFilterQueryString(query.Filters)
+  return `${defaultBaseURL}${editionName}/${cardName}${filterQS}`
 }
 
 // --- Seller cache lookup ---

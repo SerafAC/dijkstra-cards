@@ -15,10 +15,16 @@ export interface Seller {
   Currency: string
 }
 
+export interface CardFilters {
+  language: number[]
+  minCondition: number | null
+}
+
 export interface CardQuery {
   Card: Card
   Language: string
   ShipmentDestination: string
+  Filters?: CardFilters
 }
 
 export interface SellerFetchStatus {
