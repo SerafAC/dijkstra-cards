@@ -391,10 +391,11 @@ async function assignSellers() {
 
 <style scoped lang="scss">
 .search-page {
+  @include mixins.dc-container;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-height: 100vh;
   padding: 1rem 2rem 2rem;
   box-sizing: border-box;
 }

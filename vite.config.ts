@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import webExtension from 'vite-plugin-web-extension'
@@ -27,9 +28,19 @@ export default defineConfig({
       additionalInputs: ['src/popup/index.html'],
     }),
   ],
-  server: {
-    watch: {
-      usePolling: true,
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `
+          @use "@/popup/scss/variables.scss";
+          @use "@/popup/scss/mixins.scss";
+        `
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('src', import.meta.url))
     }
   },
   build: {

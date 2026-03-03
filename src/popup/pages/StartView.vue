@@ -122,21 +122,14 @@ function formatDate(iso: string): string {
 
 <style scoped lang="scss">
 .page {
+  @include mixins.dc-container;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   gap: 1.5rem;
-  margin: 20px;
-  min-height: 90vh;
-  border-radius: 0 0 20px 20px;
   padding-bottom: 20px;
-
-  background-color: var(--p-surface-100);
-
-  .app-dark & {
-    background-color: var(--p-surface-900);
-  }
 
   .content {
     display: flex;

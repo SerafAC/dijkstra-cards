@@ -82,10 +82,11 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .page {
+  @include mixins.dc-container;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  height: 100vh;
   padding: 1rem 0 150px;
   box-sizing: border-box;
 }
