@@ -27,6 +27,11 @@ export default defineConfig({
       additionalInputs: ['src/popup/index.html'],
     }),
   ],
+  server: {
+    watch: {
+      usePolling: true,
+    }
+  },
   build: {
     outDir: `dist/${browser}`,
     emptyOutDir: true,
