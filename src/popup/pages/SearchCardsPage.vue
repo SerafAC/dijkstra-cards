@@ -66,6 +66,12 @@ async function saveFilters() {
   await StorageService.saveCardFilters(filters)
 }
 
+async function clearSavedFilters() {
+  selectedLanguages.value = []
+  selectedMinCondition.value = null
+  await StorageService.saveCardFilters({ language: [], minCondition: null })
+}
+
 const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
     const card = selectedCards.value.find((card) => card.Id === entry[0])
@@ -221,7 +227,6 @@ async function assignSellers() {
             optionValue="value"
             placeholder="Any language"
             :maxSelectedLabels="3"
-            @change="saveFilters"
           />
         </div>
         <div class="filter-group">
@@ -233,7 +238,24 @@ async function assignSellers() {
             optionValue="value"
             placeholder="Any condition"
             showClear
-            @change="saveFilters"
+          />
+        </div>
+        <div class="filter-actions">
+          <Button
+            icon="pi pi-save"
+            size="small"
+            severity="secondary"
+            outlined
+            v-tooltip="'Save filters as default'"
+            @click="saveFilters"
+          />
+          <Button
+            icon="pi pi-eraser"
+            size="small"
+            severity="danger"
+            outlined
+            v-tooltip="'Clear saved filters'"
+            @click="clearSavedFilters"
           />
         </div>
       </div>
@@ -422,6 +444,11 @@ async function assignSellers() {
       font-weight: 600;
       color: var(--text-color-secondary);
     }
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 0.25rem;
   }
 }
 
