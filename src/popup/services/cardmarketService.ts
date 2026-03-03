@@ -56,7 +56,7 @@ function storePrefetchedError(key: string, err: string): void {
 // --- URL building ---
 
 function encodeParam(param: string): string {
-  return encodeURIComponent(param.toLowerCase().replace(/ /g, '-'))
+  return param.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')
 }
 
 export function BuildCardPageURL(card: Card): string {
