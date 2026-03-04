@@ -53,6 +53,50 @@ dijkstra-cards/
 └── tsconfig.json
 ```
 
+## Installation
+
+Download the latest release from the [Releases page](https://github.com/SerafAC/dijkstra-cards/releases).
+
+### Chrome / Chromium
+
+1. Download the `dijkstra-cards-chrome-vX.Y.Z.zip` asset and extract it to a folder.
+2. Open `chrome://extensions/` in your browser.
+3. Enable **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked** and select the extracted folder.
+
+### Firefox
+
+1. Download the `dijkstra-cards-firefox-vX.Y.Z.xpi` asset.
+2. Open `about:addons` in Firefox.
+3. Click the gear icon ⚙ → **Install Add-on From File…**
+4. Select the downloaded `.xpi` file and click **Add** when prompted.
+
+> **Note:** If Firefox blocks the installation because the add-on is unsigned, you can load it temporarily via `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** and select the `.xpi` file. The add-on will be removed when Firefox restarts.
+
+## Usage
+
+Dijkstra Cards finds the cheapest seller combination on [Cardmarket](https://www.cardmarket.com) for a list of Magic: The Gathering cards.
+
+### 1. Import your deck
+
+On [archidekt.com](https://archidekt.com), open your deck, click **⋮** → **Export** → **CSV** and save the file. Then click the extension icon, hit **Open Deck Export**, and select it. Recent decks are saved for quick re-access.
+
+### 2. Select cards to optimize
+
+In the **Deck** view, tick the cards you want to buy and click **Next**.
+
+### 3. Configure filters (optional)
+
+In the **Search** view, set your accepted **languages** and **minimum condition**, then click **Save filters** to persist them.
+
+### 4. Assign sellers
+
+Click **Assign sellers**. The extension fetches offers from Cardmarket for each card and finds the lowest-cost seller combination. A progress bar tracks the search. If a CAPTCHA appears, the tab will surface so you can solve it.
+
+### 5. Review results
+
+Results show the total cost and a per-card table of assigned sellers with links to Cardmarket. Cards that failed to fetch appear in a collapsible **Failed cards** section.
+
 ## Getting Started
 
 ```bash
