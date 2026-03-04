@@ -59,7 +59,16 @@ Dijkstra Cards helps you find the cheapest combination of sellers on [Cardmarket
 
 ### 1. Import your deck
 
-Click the extension icon to open the popup, then click **Open Deck Export** and select a CSV file exported from your deck tool (e.g. Archidekt). The CSV must contain at minimum a card name, edition, and quantity column. Recently opened decks are saved for quick re-access.
+**Export from Archidekt:**
+
+1. Open your deck on [archidekt.com](https://archidekt.com).
+2. Click the **⋮** (more options) menu near the top of the deck page.
+3. Select **Export** → **CSV**.
+4. Save the downloaded `.csv` file to your computer.
+
+**Load into the extension:**
+
+Click the extension icon to open the popup, then click **Open Deck Export** and select the CSV file you just downloaded. Recently opened decks are saved for quick re-access.
 
 ### 2. Select cards to optimize
 
