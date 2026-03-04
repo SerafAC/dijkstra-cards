@@ -39,14 +39,14 @@ Download the latest release from the [Releases page](https://github.com/SerafAC/
 
 ### Chrome / Chromium
 
-1. Download the `dijkstra-cards-chrome.zip` asset and extract it to a folder.
+1. Download the `dijkstra-cards-chrome-vX.Y.Z.zip` asset and extract it to a folder.
 2. Open `chrome://extensions/` in your browser.
 3. Enable **Developer mode** (toggle in the top-right corner).
 4. Click **Load unpacked** and select the extracted folder.
 
 ### Firefox
 
-1. Download the `dijkstra-cards-firefox.xpi` asset.
+1. Download the `dijkstra-cards-firefox-vX.Y.Z.xpi` asset.
 2. Open `about:addons` in Firefox.
 3. Click the gear icon ⚙ → **Install Add-on From File…**
 4. Select the downloaded `.xpi` file and click **Add** when prompted.
