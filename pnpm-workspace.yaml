@@ -2,3 +2,6 @@ onlyBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
   - spawn-sync
+
+packages:
+  - .
