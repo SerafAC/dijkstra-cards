@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dijkstra Cards",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A cards shopping cart optimizer.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -20,7 +20,9 @@
   },
   "background": {
     "service_worker": "src/background/index.ts",
-    "scripts": ["src/background/index.ts"],
+    "scripts": [
+      "src/background/index.ts"
+    ],
     "type": "module"
   },
   "browser_specific_settings": {
@@ -29,6 +31,13 @@
       "strict_min_version": "109.0"
     }
   },
-  "permissions": ["windows", "tabs", "scripting", "storage"],
-  "host_permissions": ["https://www.cardmarket.com/*"]
+  "permissions": [
+    "windows",
+    "tabs",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.cardmarket.com/*"
+  ]
 }
