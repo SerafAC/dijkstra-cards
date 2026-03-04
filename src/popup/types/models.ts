@@ -41,3 +41,7 @@ export interface RecentDeck {
   cardCount: number
   loadedAt: string
 }
+
+export interface AppSettings {
+  searchIntervalMs: number
+}

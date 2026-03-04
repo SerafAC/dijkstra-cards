@@ -1,8 +1,13 @@
-import type { CardFilters, RecentDeck } from '../types/models'
+import type { AppSettings, CardFilters, RecentDeck } from '../types/models'
 
 const RECENT_DECKS_KEY = 'recentDecks'
 const CARD_FILTERS_KEY = 'cardFilters'
+const APP_SETTINGS_KEY = 'appSettings'
 const MAX_RECENT_DECKS = 10
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  searchIntervalMs: 5_000,
+}
 
 export const StorageService = {
   async getRecentDecks(): Promise<RecentDeck[]> {
@@ -47,6 +52,21 @@ export const StorageService = {
   async saveCardFilters(filters: CardFilters): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.local.set({ [CARD_FILTERS_KEY]: filters }, resolve)
+    })
+  },
+
+  async getSettings(): Promise<AppSettings> {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(APP_SETTINGS_KEY, (result) => {
+        const stored = result[APP_SETTINGS_KEY] as Partial<AppSettings> | undefined
+        resolve({ ...DEFAULT_SETTINGS, ...stored })
+      })
+    })
+  },
+
+  async saveSettings(settings: AppSettings): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [APP_SETTINGS_KEY]: settings }, resolve)
     })
   },
 }
