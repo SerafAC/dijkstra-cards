@@ -1,5 +1,7 @@
 # Dijkstra Cards
 
+<img src="./public/baner.png"/>
+
 A cards shopping cart optimizer.
 
 ## Stack
@@ -77,6 +79,20 @@ Then in any script:
 import browser from 'webextension-polyfill'
 await browser.tabs.query({ active: true })
 ```
+
+# Planned features
+
+- [x] Search filters
+- [x] Progress bar
+- [x] Cards links
+- [x] Dark/light mode
+- [ ] Copy texts from table
+- [ ] Archidekt export instructions
+- [ ] Blacklisting sellers
+- [ ] Card quantity
+- [ ] CM login
+- [ ] Cart adding
+- [ ] Translations
 
 ## License
 
