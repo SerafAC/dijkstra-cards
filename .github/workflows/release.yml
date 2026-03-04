@@ -87,7 +87,7 @@ jobs:
         run: |
           VERSION="v${{ steps.version.outputs.new_version }}"
           (cd dist/chrome && zip -r "../../dijkstra-cards-chrome-${VERSION}.zip" .)
-          (cd dist/firefox && zip -r "../../dijkstra-cards-firefox-${VERSION}.zip" .)
+          (cd dist/firefox && zip -r "../../dijkstra-cards-firefox-${VERSION}.xpi" .)
 
       - name: Commit and push version bump
         run: |
@@ -106,4 +106,4 @@ jobs:
             --title "$VERSION" \
             --generate-notes \
             "dijkstra-cards-chrome-${VERSION}.zip" \
-            "dijkstra-cards-firefox-${VERSION}.zip"
+            "dijkstra-cards-firefox-${VERSION}.xpi"
