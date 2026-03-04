@@ -41,3 +41,21 @@ export interface RecentDeck {
   cardCount: number
   loadedAt: string
 }
+
+export interface PersistedAssignment {
+  cardName: string
+  editionName: string
+  seller: Seller
+}
+
+export interface PersistedError {
+  cardName: string
+  editionName: string
+  errorMessage: string
+}
+
+export interface PersistedSearchResults {
+  deckFileName: string
+  assignments: PersistedAssignment[]
+  errors: PersistedError[]
+}
