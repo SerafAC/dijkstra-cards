@@ -2,7 +2,7 @@
 
 <img src="./public/baner.png"/>
 
-A cards shopping cart optimizer.
+A Card-Shopping Cart Optimizer.
 
 ## Installation
 
