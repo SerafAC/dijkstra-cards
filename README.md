@@ -55,49 +55,27 @@ Download the latest release from the [Releases page](https://github.com/SerafAC/
 
 ## Usage
 
-Dijkstra Cards helps you find the cheapest combination of sellers on [Cardmarket](https://www.cardmarket.com) for a list of Magic: The Gathering cards.
+Dijkstra Cards finds the cheapest seller combination on [Cardmarket](https://www.cardmarket.com) for a list of Magic: The Gathering cards.
 
 ### 1. Import your deck
 
-**Export from Archidekt:**
-
-1. Open your deck on [archidekt.com](https://archidekt.com).
-2. Click the **⋮** (more options) menu near the top of the deck page.
-3. Select **Export** → **CSV**.
-4. Save the downloaded `.csv` file to your computer.
-
-**Load into the extension:**
-
-Click the extension icon to open the popup, then click **Open Deck Export** and select the CSV file you just downloaded. Recently opened decks are saved for quick re-access.
+On [archidekt.com](https://archidekt.com), open your deck, click **⋮** → **Export** → **CSV** and save the file. Then click the extension icon, hit **Open Deck Export**, and select it. Recent decks are saved for quick re-access.
 
 ### 2. Select cards to optimize
 
-In the **Deck** view you will see all cards from your import. Tick the cards you want to buy and click **Next**.
+In the **Deck** view, tick the cards you want to buy and click **Next**.
 
 ### 3. Configure filters (optional)
 
-In the **Search** view you can narrow results by:
-
-- **Language** — one or more languages you accept (e.g. English, French).
-- **Minimum condition** — the lowest condition grade you will accept (Mint → Played).
-
-Click **Save filters** to persist your preferences across sessions.
+In the **Search** view, set your accepted **languages** and **minimum condition**, then click **Save filters** to persist them.
 
 ### 4. Assign sellers
 
-Click **Assign sellers**. The extension will open a background tab, visit each card's Cardmarket page, collect available seller offers, and run an optimization algorithm to find the seller combination that covers all selected cards at the lowest total price. A progress bar shows which card is currently being fetched.
-
-> If Cardmarket shows a CAPTCHA, the tab will be brought to the foreground so you can solve it and the search will continue automatically.
+Click **Assign sellers**. The extension fetches offers from Cardmarket for each card and finds the lowest-cost seller combination. A progress bar tracks the search. If a CAPTCHA appears, the tab will surface so you can solve it.
 
 ### 5. Review results
 
-Once the search is complete you will see:
-
-- **Total cost** and number of cards assigned.
-- A table listing each card, its assigned seller, and the individual price.
-- External links to each card's Cardmarket page.
-
-Any cards that could not be fetched appear in a collapsible **Failed cards** section with an error message and a direct link to search manually.
+Results show the total cost and a per-card table of assigned sellers with links to Cardmarket. Cards that failed to fetch appear in a collapsible **Failed cards** section.
 
 ## Getting Started
 
