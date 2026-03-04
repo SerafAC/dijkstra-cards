@@ -5,8 +5,9 @@ import { clearSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
 import { GetCardSellers, GetFetchStatuses, closeBrowsingSession } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
+import { CardService } from '../services/cardService'
 import { Browser } from '../services/browser'
-import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '../types/models'
+import type { Card, CardFilters, CardQuery, PersistedAssignment, PersistedError, Seller, SellerFetchStatus } from '../types/models'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -22,6 +23,7 @@ const cardFetchErrors: Ref<SellerFetchStatus[]> = ref([])
 const isSearching = ref(false)
 const searchAttempted = ref(false)
 const fetchProgress = ref(0)
+const fetchTotal = ref(0)
 const currentCardName = ref('')
 
 const languageOptions = [
@@ -56,6 +58,8 @@ onMounted(async () => {
     selectedLanguages.value = saved.language ?? []
     selectedMinCondition.value = saved.minCondition ?? null
   }
+
+  await restorePersistedResults()
 })
 
 async function saveFilters() {
@@ -70,6 +74,95 @@ async function clearSavedFilters() {
   selectedLanguages.value = []
   selectedMinCondition.value = null
   await StorageService.saveCardFilters({ language: [], minCondition: null })
+}
+
+function cardKey(card: { CardName: string; EditionName: string }): string {
+  return `${card.CardName.toLowerCase()}|${card.EditionName.toLowerCase()}`
+}
+
+async function restorePersistedResults() {
+  const deckName = CardService.GetDeckFileName()
+  if (!deckName || !hasCards.value) return
+
+  const saved = await StorageService.getSearchResults(deckName)
+  if (!saved) return
+
+  const cardsByKey = new Map<string, Card>()
+  for (const card of selectedCards.value) {
+    cardsByKey.set(cardKey(card), card)
+  }
+
+  const restored: Record<string, Seller> = {}
+  for (const entry of saved.assignments) {
+    const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
+    const card = cardsByKey.get(key)
+    if (card) {
+      restored[card.Id] = entry.seller
+    }
+  }
+
+  const restoredErrors: SellerFetchStatus[] = []
+  for (const entry of saved.errors) {
+    const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
+    const card = cardsByKey.get(key)
+    if (card) {
+      restoredErrors.push({
+        cardId: card.Id,
+        hadError: true,
+        errorMessage: entry.errorMessage,
+        sellersFound: false,
+        fetchAttempted: true,
+      })
+    }
+  }
+
+  if (Object.keys(restored).length > 0 || restoredErrors.length > 0) {
+    assignments.value = restored
+    cardFetchErrors.value = restoredErrors
+    searchAttempted.value = true
+  }
+}
+
+async function persistResults() {
+  const deckName = CardService.GetDeckFileName()
+  if (!deckName) return
+
+  const persistedAssignments: PersistedAssignment[] = []
+  for (const [cardId, seller] of Object.entries(assignments.value)) {
+    const card = selectedCards.value.find((c) => c.Id === cardId)
+    if (card) {
+      persistedAssignments.push({
+        cardName: card.CardName,
+        editionName: card.EditionName,
+        seller,
+      })
+    }
+  }
+
+  const persistedErrors: PersistedError[] = cardFetchErrors.value.map((status) => {
+    const card = selectedCards.value.find((c) => c.Id === status.cardId)
+    return {
+      cardName: card?.CardName || '',
+      editionName: card?.EditionName || '',
+      errorMessage: status.errorMessage ?? '',
+    }
+  })
+
+  await StorageService.saveSearchResults({
+    deckFileName: deckName,
+    assignments: persistedAssignments,
+    errors: persistedErrors,
+  })
+}
+
+async function removeAssignments() {
+  const deckName = CardService.GetDeckFileName()
+  if (deckName) {
+    await StorageService.removeSearchResults(deckName)
+  }
+  assignments.value = {}
+  cardFetchErrors.value = []
+  searchAttempted.value = false
 }
 
 const assignmentRows = computed(() =>
@@ -88,7 +181,7 @@ const assignmentRows = computed(() =>
 const hasAssignments = computed(() => assignmentRows.value.length > 0)
 const totalPrice = computed(() => assignmentRows.value.reduce((sum, row) => sum + row.price, 0))
 const fetchPercentage = computed(() =>
-  hasCards.value ? Math.round((fetchProgress.value / selectedCards.value.length) * 100) : 0,
+  fetchTotal.value > 0 ? Math.round((fetchProgress.value / fetchTotal.value) * 100) : 0,
 )
 
 const failedCards = computed(() =>
@@ -151,9 +244,16 @@ async function assignSellers() {
     return
   }
 
+  const assignedCardIds = new Set(Object.keys(assignments.value))
+
   const queries = selectedCards.value
+    .filter((card) => !assignedCardIds.has(card.Id))
     .map(buildQueryFromRow)
     .filter((card) => card.Card.CardName.length > 0)
+
+  if (!queries.length && assignedCardIds.size > 0) {
+    return
+  }
 
   if (!queries.length) {
     assignments.value = {}
@@ -163,6 +263,7 @@ async function assignSellers() {
   try {
     isSearching.value = true
     fetchProgress.value = 0
+    fetchTotal.value = queries.length
 
     for (const query of queries) {
       currentCardName.value = query.Card.CardName
@@ -178,11 +279,14 @@ async function assignSellers() {
       await delay(1000);
     }
 
-    assignments.value = await FindOptimalSellers(selectedCards.value)
+    const newAssignments = await FindOptimalSellers(selectedCards.value)
+    assignments.value = { ...assignments.value, ...newAssignments }
 
     cardFetchErrors.value = (
       await GetFetchStatuses(selectedCards.value.map((card) => card.Id))
     ).filter((status) => status.hadError)
+
+    await persistResults()
   } catch (err) {
     console.log('>>> error: ', err)
     assignments.value = {}
@@ -260,23 +364,34 @@ async function assignSellers() {
         </div>
       </div>
 
-      <Button
-        label="Assign sellers"
-        icon="pi pi-search"
-        :disabled="!hasCards || isSearching"
-        :loading="isSearching"
-        @click="assignSellers"
-      />
+      <div class="search-actions">
+        <Button
+          label="Assign sellers"
+          icon="pi pi-search"
+          :disabled="!hasCards || isSearching"
+          :loading="isSearching"
+          @click="assignSellers"
+        />
+        <Button
+          v-if="hasAssignments"
+          label="Remove assignments"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          :disabled="isSearching"
+          @click="removeAssignments"
+        />
+      </div>
 
       <div v-if="isSearching" class="progress">
         <div class="progress-header">
           <span>Fetching sellers...</span>
           <small v-if="currentCardName">{{ currentCardName }}</small>
-          <small v-else>{{ fetchProgress }} / {{ selectedCards.length }} cards</small>
+          <small v-else>{{ fetchProgress }} / {{ fetchTotal }} cards</small>
         </div>
         <ProgressBar :value="fetchPercentage" />
         <div class="progress-summary">
-          <span>{{ fetchProgress }} / {{ selectedCards.length }} cards</span>
+          <span>{{ fetchProgress }} / {{ fetchTotal }} cards</span>
         </div>
       </div>
 
@@ -451,6 +566,12 @@ async function assignSellers() {
     display: flex;
     gap: 0.25rem;
   }
+}
+
+.search-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .results-table {
