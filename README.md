@@ -4,6 +4,26 @@
 
 A cards shopping cart optimizer.
 
+## Installation
+
+Download the latest release from the [Releases page](https://github.com/SerafAC/dijkstra-cards/releases).
+
+### Chrome / Chromium
+
+1. Download the `dijkstra-cards-chrome-vX.Y.Z.zip` asset and extract it to a folder.
+2. Open `chrome://extensions/` in your browser.
+3. Enable **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked** and select the extracted folder.
+
+### Firefox
+
+1. Download the `dijkstra-cards-firefox-vX.Y.Z.xpi` asset.
+2. Open `about:addons` in Firefox.
+3. Click the gear icon ⚙ → **Install Add-on From File…**
+4. Select the downloaded `.xpi` file and click **Add** when prompted.
+
+> **Note:** If Firefox blocks the installation because the add-on is unsigned, you can load it temporarily via `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** and select the `.xpi` file. The add-on will be removed when Firefox restarts.
+
 ## Stack
 
 | Tool | Purpose |
@@ -32,26 +52,6 @@ dijkstra-cards/
 ├── vite.config.ts           # Vite + web extension plugin config
 └── tsconfig.json
 ```
-
-## Installation
-
-Download the latest release from the [Releases page](https://github.com/SerafAC/dijkstra-cards/releases).
-
-### Chrome / Chromium
-
-1. Download the `dijkstra-cards-chrome-vX.Y.Z.zip` asset and extract it to a folder.
-2. Open `chrome://extensions/` in your browser.
-3. Enable **Developer mode** (toggle in the top-right corner).
-4. Click **Load unpacked** and select the extracted folder.
-
-### Firefox
-
-1. Download the `dijkstra-cards-firefox-vX.Y.Z.xpi` asset.
-2. Open `about:addons` in Firefox.
-3. Click the gear icon ⚙ → **Install Add-on From File…**
-4. Select the downloaded `.xpi` file and click **Add** when prompted.
-
-> **Note:** If Firefox blocks the installation because the add-on is unsigned, you can load it temporarily via `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** and select the `.xpi` file. The add-on will be removed when Firefox restarts.
 
 ## Getting Started
 
