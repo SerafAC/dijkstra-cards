@@ -1,5 +1,5 @@
 import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '../types/models'
-import { openBrowsingTab, closeBrowsingTab, fetchViaTab } from './tabFetchService'
+import { openBrowsingTab, closeBrowsingTab, searchCardViaTab } from './tabFetchService'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
 const defaultRootURL = 'https://www.cardmarket.com'
@@ -304,9 +304,13 @@ async function queryCardPage(query: CardQuery): Promise<string> {
   }
 
   const tabId = await ensureBrowsingTab()
-  const targetURL = BuildSearchURL(query)
 
-  const html = await fetchViaTab(tabId, targetURL, (h) => h.includes('Sammelkartenmarkt'))
+  const html = await searchCardViaTab(
+    tabId,
+    query.Card.CardName,
+    query.Card.EditionName,
+    (h) => h.includes('Sammelkartenmarkt'),
+  )
   lastFetchTime = Date.now()
   return html
 }

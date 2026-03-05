@@ -52,6 +52,74 @@ function navigateTab(tabId: number, url: string): Promise<void> {
   })
 }
 
+function executeScript<T>(tabId: number, func: (...args: never[]) => T, args?: unknown[]): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.scripting.executeScript(
+      { target: { tabId }, func, args: args ?? [] },
+      (results) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message))
+          return
+        }
+        resolve(results?.[0]?.result as T)
+      },
+    )
+  })
+}
+
+function submitSearch(tabId: number, cardName: string): Promise<boolean> {
+  return executeScript(tabId, (name: string) => {
+    const input = document.querySelector('#ProductSearchInput') as HTMLInputElement | null
+    if (!input) return false
+    input.value = name
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    const form = input.closest('form')
+    if (form) {
+      form.submit()
+    } else {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }))
+    }
+    return true
+  }, [cardName])
+}
+
+function checkIsCardPage(tabId: number): Promise<boolean> {
+  return executeScript(tabId, () => {
+    return document.querySelector('.article-row') !== null
+  })
+}
+
+function clickEditionMatch(tabId: number, editionName: string): Promise<boolean> {
+  return executeScript(tabId, (edition: string) => {
+    const spans = document.querySelectorAll('span.expansion-symbol')
+    if (spans.length === 0) return false
+
+    const editionWords = edition.toLowerCase().split(/\s+/).filter(Boolean)
+    if (editionWords.length === 0) return false
+
+    let bestSpan: Element | null = null
+    let bestCount = 0
+
+    spans.forEach((span) => {
+      const label = (span.getAttribute('aria-label') || '').toLowerCase()
+      let matchCount = 0
+      for (const word of editionWords) {
+        if (label.includes(word)) matchCount++
+      }
+      if (matchCount > bestCount) {
+        bestCount = matchCount
+        bestSpan = span
+      }
+    })
+
+    if (!bestSpan || bestCount === 0) return false
+
+    const link = (bestSpan as Element).closest('a') || bestSpan
+    ;(link as HTMLElement).click()
+    return true
+  }, [editionName])
+}
+
 function readTabHtml(tabId: number): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.scripting.executeScript(
@@ -139,5 +207,55 @@ export async function fetchViaTab(
     return html
   }
 
+  return await pollUntilPredicate(tabId, predicate)
+}
+
+/**
+ * Searches for a card by typing its name into the `#ProductSearchInput`
+ * search bar, submitting the form, and handling the result page.
+ *
+ * If the result page contains `.article-row` elements it is a card page and
+ * the HTML is returned directly.  Otherwise the function looks for
+ * `span.expansion-symbol` elements and clicks the one whose `aria-label`
+ * best matches `editionName`.  If no edition match is found the search is
+ * treated as an error.
+ *
+ * The optional `predicate` works the same way as in `fetchViaTab`.
+ */
+export async function searchCardViaTab(
+  tabId: number,
+  cardName: string,
+  editionName: string,
+  predicate?: (html: string) => boolean,
+): Promise<string> {
+  const submitted = await submitSearch(tabId, cardName)
+  if (!submitted) {
+    throw new Error('Search bar #ProductSearchInput not found on the page')
+  }
+
+  await waitForTabLoad(tabId)
+
+  // Check if we landed directly on a card page
+  const isCardPage = await checkIsCardPage(tabId)
+  if (isCardPage) {
+    const html = await readTabHtml(tabId)
+    if (!predicate || predicate(html)) {
+      return html
+    }
+    return await pollUntilPredicate(tabId, predicate)
+  }
+
+  // Not a card page – try to find the right edition
+  const matched = await clickEditionMatch(tabId, editionName)
+  if (!matched) {
+    throw new Error(`Search error: could not find edition "${editionName}" for card "${cardName}"`)
+  }
+
+  await waitForTabLoad(tabId)
+
+  const html = await readTabHtml(tabId)
+  if (!predicate || predicate(html)) {
+    return html
+  }
   return await pollUntilPredicate(tabId, predicate)
 }
