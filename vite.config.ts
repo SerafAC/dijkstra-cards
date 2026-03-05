@@ -34,6 +34,7 @@ if (!isDevPage) {
 
 export default defineConfig({
   root: isDevPage ? 'src/popup' : undefined,
+  publicDir: isDevPage ? '../../public' : undefined,
   plugins,
   css: {
     preprocessorOptions: {
