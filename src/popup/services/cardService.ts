@@ -3,6 +3,7 @@ import { BuildCardPageURL } from './cardmarketService'
 import { StorageService } from './storageService'
 
 let storedCards: Card[] = []
+let currentDeckFileName: string = ''
 
 function generateId(): string {
   return crypto.randomUUID()
@@ -51,6 +52,7 @@ async function loadFromCSV(csvContent: string, fileName: string): Promise<boolea
   const cards = parseCSV(csvContent)
   if (cards.length === 0) return false
   storedCards = cards
+  currentDeckFileName = fileName
   for (const card of storedCards) {
     card.Link = BuildCardPageURL(card)
   }
@@ -94,5 +96,9 @@ export const CardService = {
 
   GetCards(): Promise<Card[]> {
     return Promise.resolve([...storedCards])
+  },
+
+  GetDeckFileName(): string {
+    return currentDeckFileName
   },
 }

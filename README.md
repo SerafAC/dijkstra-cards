@@ -30,7 +30,8 @@ Dijkstra Cards finds the cheapest seller combination on [Cardmarket](https://www
 
 ### 1. Import your deck
 
-On [archidekt.com](https://archidekt.com), open your deck, click **⋮** → **Export** → **CSV** and save the file. Then click the extension icon, hit **Open Deck Export**, and select it. Recent decks are saved for quick re-access.
+* On [archidekt.com](https://archidekt.com), open your deck, click **⋮** → **Export** → **CSV**, **choose all columns, check "Include header..."** and save the file.
+* Then click the extension icon, hit **Open Deck Export**, and select it. Recent decks are saved for quick re-access.
 
 ### 2. Select cards to optimize
 

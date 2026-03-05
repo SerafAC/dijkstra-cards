@@ -1,8 +1,9 @@
-import type { AppSettings, CardFilters, RecentDeck } from '../types/models'
+import type { AppSettings, CardFilters, PersistedSearchResults, RecentDeck } from '../types/models'
 
 const RECENT_DECKS_KEY = 'recentDecks'
 const CARD_FILTERS_KEY = 'cardFilters'
 const APP_SETTINGS_KEY = 'appSettings'
+const SEARCH_RESULTS_PREFIX = 'searchResults:'
 const MAX_RECENT_DECKS = 10
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -67,6 +68,29 @@ export const StorageService = {
   async saveSettings(settings: AppSettings): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.local.set({ [APP_SETTINGS_KEY]: settings }, resolve)
+    })
+  },
+  
+  async getSearchResults(deckFileName: string): Promise<PersistedSearchResults | null> {
+    const key = SEARCH_RESULTS_PREFIX + deckFileName
+    return new Promise((resolve) => {
+      chrome.storage.local.get(key, (result) => {
+        resolve((result[key] as PersistedSearchResults) ?? null)
+      })
+    })
+  },
+
+  async saveSearchResults(results: PersistedSearchResults): Promise<void> {
+    const key = SEARCH_RESULTS_PREFIX + results.deckFileName
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: results }, resolve)
+    })
+  },
+
+  async removeSearchResults(deckFileName: string): Promise<void> {
+    const key = SEARCH_RESULTS_PREFIX + deckFileName
+    return new Promise((resolve) => {
+      chrome.storage.local.remove(key, resolve)
     })
   },
 }
