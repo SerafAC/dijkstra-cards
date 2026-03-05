@@ -96,6 +96,13 @@ export function GetCachedSellers(key: string): [Seller[], boolean] {
   return [cloneSellerListings(entry.listings), true]
 }
 
+export function HasAnyCachedSellers(cardIds: string[]): boolean {
+  return cardIds.some((id) => {
+    const entry = sellerCache.get(id)
+    return entry != null && entry.fetched && !entry.fetchErr
+  })
+}
+
 // --- HTML parsing (ported from Go goquery-based implementation) ---
 
 function extractSellerName(row: Element): string {
