@@ -42,6 +42,10 @@ export interface RecentDeck {
   loadedAt: string
 }
 
+export interface AppSettings {
+  searchIntervalMs: number
+}
+
 export interface PersistedAssignment {
   cardName: string
   editionName: string

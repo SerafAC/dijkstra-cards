@@ -275,8 +275,12 @@ export function closeBrowsingSession(): void {
 
 // --- Page fetching ---
 
-const SEARCH_INTERVAL_MS = 5_000
+let searchIntervalMs = 5_000
 let lastFetchTime = 0
+
+export function setSearchIntervalMs(ms: number): void {
+  searchIntervalMs = ms
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -288,8 +292,8 @@ async function queryCardPage(query: CardQuery): Promise<string> {
   }
 
   const elapsed = Date.now() - lastFetchTime
-  if (lastFetchTime > 0 && elapsed < SEARCH_INTERVAL_MS) {
-    await sleep(SEARCH_INTERVAL_MS - elapsed)
+  if (lastFetchTime > 0 && elapsed < searchIntervalMs) {
+    await sleep(searchIntervalMs - elapsed)
   }
 
   const tabId = await ensureBrowsingTab()

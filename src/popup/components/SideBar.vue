@@ -60,6 +60,16 @@ watch(isDarkMode, (val) => {
         <span>{{ entry.label }}</span>
       </Button>
     </nav>
+
+    <nav class="nav-section nav-section--bottom">
+      <Button
+        :severity="isActive('/settings') ? 'primary' : 'secondary'"
+        @click="router.push('/settings')"
+      >
+        <i class="pi pi-cog" />
+        <span>Settings</span>
+      </Button>
+    </nav>
   </div>
   <div class="sidebar-size"></div>
 </template>
@@ -106,6 +116,10 @@ watch(isDarkMode, (val) => {
   letter-spacing: 0.05em;
   color: #777;
   margin: 0 0 0.25rem;
+}
+
+.nav-section--bottom {
+  margin-top: auto;
 }
 
 .theme-section {
