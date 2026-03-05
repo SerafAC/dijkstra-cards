@@ -6,6 +6,7 @@
   "scripts": {
     "generate-icons": "node scripts/generate-icons.mjs",
     "dev": "vite build --watch",
+    "dev:page": "cross-env DEV_PAGE=1 vite",
     "dev:firefox": "cross-env TARGET_BROWSER=firefox vite build --watch",
     "build": "vite build",
     "build:firefox": "cross-env TARGET_BROWSER=firefox vite build",
