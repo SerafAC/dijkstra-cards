@@ -1,11 +1,12 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import webExtension from 'vite-plugin-web-extension'
 import { readFileSync } from 'fs'
 
 type Browser = 'chrome' | 'firefox'
 
+const isDevPage = process.env.DEV_PAGE === '1'
 const browser = (process.env.TARGET_BROWSER as Browser) || 'chrome'
 
 function generateManifest() {
@@ -19,19 +20,30 @@ function generateManifest() {
   return manifest
 }
 
-export default defineConfig({
-  plugins: [
-    vue(),
+const plugins: PluginOption[] = [vue()]
+
+if (!isDevPage) {
+  plugins.push(
     webExtension({
       manifest: generateManifest,
       browser,
       additionalInputs: ['src/popup/index.html'],
     }),
-  ],
+  )
+}
+
+export default defineConfig({
+  root: isDevPage ? 'src/popup' : undefined,
+  plugins,
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `
+        additionalData: isDevPage
+          ? `
+          @use "@/scss/variables.scss";
+          @use "@/scss/mixins.scss";
+        `
+          : `
           @use "@/popup/scss/variables.scss";
           @use "@/popup/scss/mixins.scss";
         `
@@ -40,7 +52,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('src', import.meta.url))
+      '@': fileURLToPath(new URL(isDevPage ? '.' : 'src', import.meta.url))
     }
   },
   build: {
