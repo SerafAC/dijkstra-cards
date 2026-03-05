@@ -12,6 +12,7 @@ const selectedCards = useSelectedCards()
 const hasCardsForSearch = computed(() => selectedCards.value.length > 0)
 
 const entries = computed(() => [
+  { label: 'Start', path: '/', enabled: true },
   { label: 'Deck view', path: '/deck', enabled: true },
   { label: 'Search cards view', path: '/search', enabled: hasCardsForSearch.value },
 ])

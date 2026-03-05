@@ -57,10 +57,9 @@ async function resetToDefaults() {
 
     <div class="settings-actions">
       <Button
-        label="Save"
+        :label="saved ? 'Saved!' : 'Save'"
         icon="pi pi-save"
         :severity="saved ? 'success' : 'primary'"
-        :label="saved ? 'Saved!' : 'Save'"
         @click="saveSettings"
       />
       <Button
@@ -75,8 +74,6 @@ async function resetToDefaults() {
 </template>
 
 <style scoped lang="scss">
-@use '../scss/mixins';
-
 .settings-page {
   @include mixins.dc-container;
   min-height: 90vh;

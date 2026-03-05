@@ -68,7 +68,7 @@ function formatDate(iso: string): string {
 <template>
   <div class="page">
     <div class="header">
-      <Image class="banner" src="/baner.png" width="100%" />
+      <img class="banner" src="/baner.png" />
     </div>
     <div class="content">
       <Message v-if="error" severity="error" :closable="true" @close="error = ''">
@@ -143,7 +143,8 @@ function formatDate(iso: string): string {
 }
 
 .banner {
-  width: 70%;
+  margin: 20px 0;
+  height: 187px;
 }
 
 .actions {
@@ -152,7 +153,7 @@ function formatDate(iso: string): string {
 }
 
 .recent-decks {
-  width: 100%;
+  width: calc(100% - 40px);
 
   .recent-title {
     margin: 0 0 0.5rem 0;

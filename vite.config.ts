@@ -34,16 +34,12 @@ if (!isDevPage) {
 
 export default defineConfig({
   root: isDevPage ? 'src/popup' : undefined,
+  publicDir: isDevPage ? '../../public' : undefined,
   plugins,
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: isDevPage
-          ? `
-          @use "@/scss/variables.scss";
-          @use "@/scss/mixins.scss";
-        `
-          : `
+        additionalData:`
           @use "@/popup/scss/variables.scss";
           @use "@/popup/scss/mixins.scss";
         `
@@ -52,7 +48,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL(isDevPage ? '.' : 'src', import.meta.url))
+      '@': fileURLToPath(new URL('src', import.meta.url))
     }
   },
   build: {
