@@ -309,6 +309,7 @@ async function queryCardPage(query: CardQuery): Promise<string> {
     tabId,
     query.Card.CardName,
     query.Card.EditionName,
+    query.Filters,
     (h) => h.includes('Sammelkartenmarkt'),
   )
   lastFetchTime = Date.now()
