@@ -52,7 +52,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL(isDevPage ? '.' : 'src', import.meta.url))
+      '@': fileURLToPath(new URL(isDevPage ? './src/popup' : './src', import.meta.url))
     }
   },
   build: {
