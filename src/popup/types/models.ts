@@ -63,3 +63,13 @@ export interface PersistedSearchResults {
   assignments: PersistedAssignment[]
   errors: PersistedError[]
 }
+
+export interface ProjectFile {
+  version: 1
+  deckFileName: string
+  csvContent: string
+  selectedCards: { cardName: string; editionName: string }[]
+  filters: CardFilters | null
+  assignments: PersistedAssignment[]
+  errors: PersistedError[]
+}

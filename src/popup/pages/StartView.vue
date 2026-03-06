@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CardService } from '../services/cardService'
 import { StorageService } from '../services/storageService'
+import { ProjectService } from '../services/projectService'
+import { useProjectStore } from '../stores/projectStore'
 import type { RecentDeck } from '../types/models'
 import Image from 'primevue/image'
 import Message from 'primevue/message'
@@ -15,6 +17,7 @@ const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const recentDecks = ref<RecentDeck[]>([])
+const { isProjectLoaded, currentProjectName } = useProjectStore()
 
 onMounted(async () => {
   recentDecks.value = await StorageService.getRecentDecks()
@@ -56,6 +59,20 @@ async function onRemoveRecent(deck: RecentDeck) {
   recentDecks.value = await StorageService.getRecentDecks()
 }
 
+async function onOpenProject() {
+  loading.value = true
+  try {
+    const result = await ProjectService.open()
+    loading.value = false
+    if (result) {
+      router.push({ path: '/deck' })
+    }
+  } catch (er) {
+    error.value = er as string
+    loading.value = false
+  }
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     year: 'numeric',
@@ -77,6 +94,7 @@ function formatDate(iso: string): string {
 
       <div v-if="!loading" class="card actions">
         <Button label="Open Deck Export" icon="pi pi-upload" @click="onOpenDeck" :loading="loading" />
+        <Button label="Open Project" icon="pi pi-folder-open" severity="secondary" @click="onOpenProject" :loading="loading" />
       </div>
 
       <div class="status" v-if="loading">
