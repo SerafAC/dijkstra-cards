@@ -173,9 +173,6 @@ async function pollUntilPredicate(
   let retryCount = 0
 
   while (Date.now() < deadline) {
-    await sleep(POLL_INTERVAL_MS)
-    retryCount++
-
     if (retryCount === FOCUS_TAB_ON_RETRY) {
       chrome.tabs.update(tabId, { active: true })
     }
@@ -184,6 +181,8 @@ async function pollUntilPredicate(
     if (predicate(html)) {
       return html
     }
+    retryCount++
+    await sleep(POLL_INTERVAL_MS)
   }
 
   throw new Error(`Predicate not satisfied after ${POLL_TIMEOUT_MS / 60_000} minutes`)
