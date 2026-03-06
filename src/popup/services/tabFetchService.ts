@@ -137,6 +137,10 @@ function clickEditionMatch(tabId: number, editionName: string): Promise<boolean>
   }, [editionName])
 }
 
+function readTabUrl(tabId: number): Promise<string> {
+  return executeScript(tabId, () => window.location.href)
+}
+
 function readTabHtml(tabId: number): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.scripting.executeScript(
@@ -245,7 +249,7 @@ export async function searchCardViaTab(
   editionName: string,
   filters?: TabCardFilters,
   predicate?: (html: string) => boolean,
-): Promise<string> {
+): Promise<{ html: string; url: string }> {
 
   if (predicate) await pollUntilPredicate(tabId, predicate)
 
@@ -283,7 +287,9 @@ async function applyFiltersAndRead(
   tabId: number,
   filters?: TabCardFilters,
   predicate?: (html: string) => boolean,
-): Promise<string> {
+): Promise<{ html: string; url: string }> {
+  const url = await readTabUrl(tabId)
+
   const hasFilters = filters &&
     ((filters.language && filters.language.length > 0) || filters.minCondition != null)
 
@@ -294,7 +300,7 @@ async function applyFiltersAndRead(
 
   const html = await readTabHtml(tabId)
   if (!predicate || predicate(html)) {
-    return html
+    return { html, url }
   }
-  return await pollUntilPredicate(tabId, predicate)
+  return { html: await pollUntilPredicate(tabId, predicate), url }
 }
