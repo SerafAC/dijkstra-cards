@@ -7,6 +7,8 @@ import { GetCardSellers, GetFetchStatuses, HasAnyCachedSellers, closeBrowsingSes
 import { StorageService } from '../services/storageService'
 import { CardService } from '../services/cardService'
 import { Browser } from '../services/browser'
+import { ProjectService } from '../services/projectService'
+import { useProjectStore } from '../stores/projectStore'
 import type { Card, CardFilters, CardQuery, PersistedAssignment, PersistedError, Seller, SellerFetchStatus } from '../types/models'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
@@ -48,6 +50,8 @@ const conditionOptions = [
   { label: 'Light Played', value: 5 },
   { label: 'Played', value: 6 },
 ]
+
+const { isProjectLoaded } = useProjectStore()
 
 const selectedLanguages: Ref<number[]> = ref([])
 const selectedMinCondition: Ref<number | null> = ref(null)
@@ -166,6 +170,64 @@ async function persistResults() {
     assignments: persistedAssignments,
     errors: persistedErrors,
   })
+
+  await autoSaveProject(persistedAssignments, persistedErrors)
+}
+
+async function buildPersistedData(): Promise<{
+  assignments: PersistedAssignment[]
+  errors: PersistedError[]
+}> {
+  const persistedAssignments: PersistedAssignment[] = []
+  for (const [cardId, seller] of Object.entries(assignments.value)) {
+    const card = selectedCards.value.find((c) => c.Id === cardId)
+    if (card) {
+      persistedAssignments.push({
+        cardName: card.CardName,
+        editionName: card.EditionName,
+        seller,
+      })
+    }
+  }
+
+  const persistedErrors: PersistedError[] = cardFetchErrors.value.map((status) => {
+    const card = selectedCards.value.find((c) => c.Id === status.cardId)
+    return {
+      cardName: card?.CardName || '',
+      editionName: card?.EditionName || '',
+      errorMessage: status.errorMessage ?? '',
+    }
+  })
+
+  return { assignments: persistedAssignments, errors: persistedErrors }
+}
+
+async function autoSaveProject(
+  persistedAssignments: PersistedAssignment[],
+  persistedErrors: PersistedError[],
+) {
+  if (!isProjectLoaded.value) return
+
+  const filters: CardFilters = {
+    language: selectedLanguages.value,
+    minCondition: selectedMinCondition.value,
+  }
+
+  await ProjectService.autoSave(
+    selectedCards.value,
+    filters,
+    persistedAssignments,
+    persistedErrors,
+  )
+}
+
+async function saveProjectAs() {
+  const { assignments: pa, errors: pe } = await buildPersistedData()
+  const filters: CardFilters = {
+    language: selectedLanguages.value,
+    minCondition: selectedMinCondition.value,
+  }
+  await ProjectService.saveAs(selectedCards.value, filters, pa, pe)
 }
 
 async function removeAssignments() {
@@ -176,6 +238,7 @@ async function removeAssignments() {
   assignments.value = {}
   cardFetchErrors.value = []
   searchAttempted.value = false
+  await autoSaveProject([], [])
 }
 
 const assignmentRows = computed(() =>
@@ -394,6 +457,15 @@ async function assignSellers() {
           :disabled="isSearching"
           @click="removeAssignments"
         />
+        <div class="search-actions__spacer" />
+        <Button
+          label="Save Project"
+          icon="pi pi-save"
+          severity="secondary"
+          outlined
+          :disabled="isSearching"
+          @click="saveProjectAs"
+        />
       </div>
 
       <div v-if="isSearching" class="progress">
@@ -585,6 +657,10 @@ async function assignSellers() {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+
+  &__spacer {
+    flex: 1;
+  }
 }
 
 .results-table {

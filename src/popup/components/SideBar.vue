@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSelectedCards } from '../stores/selectedCards'
+import { useProjectStore } from '../stores/projectStore'
 import Button from 'primevue/button'
 import ToggleSwitch from 'primevue/toggleswitch'
 
@@ -10,6 +11,7 @@ const route = useRoute()
 const selectedCards = useSelectedCards()
 
 const hasCardsForSearch = computed(() => selectedCards.value.length > 0)
+const { isProjectLoaded, currentProjectName } = useProjectStore()
 
 const entries = computed(() => [
   { label: 'Start', path: '/', enabled: true },
@@ -61,6 +63,11 @@ watch(isDarkMode, (val) => {
         <span>{{ entry.label }}</span>
       </Button>
     </nav>
+
+    <div v-if="isProjectLoaded" class="project-section">
+      <p class="nav-label">Project</p>
+      <span class="project-name" :title="currentProjectName">{{ currentProjectName }}</span>
+    </div>
 
     <nav class="nav-section nav-section--bottom">
       <Button
@@ -133,5 +140,20 @@ watch(isDarkMode, (val) => {
   align-items: center;
   gap: 0.5rem;
   color: var(--p-text-muted-color);
+}
+
+.project-section {
+  margin-top: 1rem;
+  padding: 0 0.75rem;
+}
+
+.project-name {
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
