@@ -94,49 +94,16 @@ interface TabCardFilters {
   minCondition?: number | null
 }
 
-function applyCardFilters(tabId: number, filters: TabCardFilters): Promise<boolean> {
-  return executeScript(tabId, (lang: number[], minCond: number | null) => {
-    let applied = false
-
-    // Select language checkboxes by value
-    if (lang && lang.length > 0) {
-      const container = document.querySelector('#articleFilterProductLanguage')
-      if (container) {
-        const checkboxes = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
-        checkboxes.forEach((cb) => {
-          const val = parseInt(cb.value, 10)
-          if (lang.includes(val)) {
-            cb.checked = true
-            cb.dispatchEvent(new Event('change', { bubbles: true }))
-            applied = true
-          }
-        })
-      }
-    }
-
-    // Select minimum condition
-    if (minCond != null) {
-      const container = document.querySelector('#articleFilterProductCondition')
-      if (container) {
-        const select = container.querySelector<HTMLSelectElement>('select[name="minCondition"]')
-        if (select) {
-          select.value = String(minCond)
-          select.dispatchEvent(new Event('change', { bubbles: true }))
-          applied = true
-        }
-      }
-    }
-
-    // Submit filter form
-    if (applied) {
-      const submitBtn = document.querySelector<HTMLInputElement>('.filterButtons input[name="apply"]')
-      if (submitBtn) {
-        submitBtn.click()
-      }
-    }
-
-    return applied
-  }, [filters.language ?? [], filters.minCondition ?? null])
+async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise<void> {
+  const urlStr = await executeScript(tabId, () => window.location.href)
+  const url = new URL(urlStr)
+  if (filters?.language) {
+    url.searchParams.set('language', filters.language.join(','))
+  }
+  if (filters?.minCondition) {
+    url.searchParams.set('minCondition', filters.minCondition.toString())
+  }
+  navigateTab(tabId, url.toString());
 }
 
 function clickEditionMatch(tabId: number, editionName: string): Promise<boolean> {

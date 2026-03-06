@@ -2,7 +2,7 @@ import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '..
 import { openBrowsingTab, closeBrowsingTab, searchCardViaTab } from './tabFetchService'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
-const defaultRootURL = 'https://www.cardmarket.com'
+const defaultRootURL = 'https://www.cardmarket.com/en/Magic'
 
 // --- Cache ---
 

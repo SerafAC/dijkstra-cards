@@ -11,7 +11,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main>
+  <main class="app-main">
     <SideBar />
     <RouterView class="router-view" />
   </main>
@@ -32,7 +32,7 @@ onMounted(async () => {
     -webkit-text-size-adjust: 100%;
 }
 
-main {
+main.app-main {
   display: flex;
 }
 .router-view {

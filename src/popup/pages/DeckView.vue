@@ -30,10 +30,19 @@ onMounted(async () => {
 <template>
   <div class="page">
     <div class="header">
-      <h2 style="margin-left: 12px">Deck Viewer</h2>
-      <RouterLink to="/">
-        <Button label="Back to Start" icon="pi pi-arrow-left" severity="secondary" outlined />
-      </RouterLink>
+      <div class="header-left">
+        <h2 style="margin-left: 12px">Deck Viewer</h2>
+        <RouterLink to="/">
+          <Button label="Back to Start" icon="pi pi-arrow-left" severity="secondary" outlined />
+        </RouterLink>
+      </div>
+      <Button
+        class="btn-next"
+        label="Next"
+        icon="pi pi-arrow-right"
+        :disabled="!selectedCards.length"
+        @click="handleNext"
+      />
     </div>
 
     <Message v-if="errorMsg" severity="error" :closable="true" @close="errorMsg = null">
@@ -68,14 +77,7 @@ onMounted(async () => {
         </Column>
       </DataTable>
 
-      <div class="actions">
-        <Button
-          label="Next"
-          icon="pi pi-arrow-right"
-          :disabled="!selectedCards.length"
-          @click="handleNext"
-        />
-      </div>
+
     </div>
   </div>
 </template>
@@ -89,16 +91,27 @@ onMounted(async () => {
   gap: 1rem;
   padding: 1rem 0 150px;
   box-sizing: border-box;
-}
 
-.header {
-  display: flex;
-  align-items: center;
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-  h2 {
-    margin-right: 16px;
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    h2 {
+      margin-right: 16px;
+    }
+    .btn-next {
+      margin-right: 20px;
+    }
   }
 }
+
+
 
 .card {
   display: flex;
@@ -116,9 +129,4 @@ onMounted(async () => {
   }
 }
 
-.actions {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-}
 </style>
