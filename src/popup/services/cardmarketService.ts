@@ -293,7 +293,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function queryCardPage(query: CardQuery): Promise<string> {
+async function queryCardPage(query: CardQuery): Promise<{ html: string; url: string }> {
   if (!query.Card.CardName.trim()) {
     throw new Error('card name is required')
   }
@@ -305,7 +305,7 @@ async function queryCardPage(query: CardQuery): Promise<string> {
 
   const tabId = await ensureBrowsingTab()
 
-  const html = await searchCardViaTab(
+  const result = await searchCardViaTab(
     tabId,
     query.Card.CardName,
     query.Card.EditionName,
@@ -313,7 +313,7 @@ async function queryCardPage(query: CardQuery): Promise<string> {
     (h) => h.includes('Sammelkartenmarkt'),
   )
   lastFetchTime = Date.now()
-  return html
+  return result
 }
 
 // --- Public API ---
@@ -327,8 +327,11 @@ export async function GetCardSellers(query: CardQuery): Promise<Seller[]> {
   }
 
   let body: string
+  let cardUrl: string
   try {
-    body = await queryCardPage(query)
+    const result = await queryCardPage(query)
+    body = result.html
+    cardUrl = result.url
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     storePrefetchedError(key, msg)
@@ -351,6 +354,7 @@ export async function GetCardSellers(query: CardQuery): Promise<Seller[]> {
   }
 
   storePrefetchedSellers(key, sellers)
+  query.Card.Link = cardUrl
   return cloneSellerListings(sellers)
 }
 
