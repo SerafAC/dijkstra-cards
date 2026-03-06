@@ -246,6 +246,9 @@ export async function searchCardViaTab(
   filters?: TabCardFilters,
   predicate?: (html: string) => boolean,
 ): Promise<string> {
+
+  if (predicate) await pollUntilPredicate(tabId, predicate)
+
   const submitted = await submitSearch(tabId, cardName)
   if (!submitted) {
     throw new Error('Search bar #ProductSearchInput not found on the page')
@@ -253,17 +256,23 @@ export async function searchCardViaTab(
 
   await waitForTabLoad(tabId)
 
+  if (predicate) await pollUntilPredicate(tabId, predicate)
+
   // Check if we landed directly on a card page
   const isCardPage = await checkIsCardPage(tabId)
   if (isCardPage) {
     return await applyFiltersAndRead(tabId, filters, predicate)
   }
 
+  if (predicate) await pollUntilPredicate(tabId, predicate)
+
   // Not a card page – try to find the right edition
   const matched = await clickEditionMatch(tabId, editionName)
   if (!matched) {
     throw new Error(`Search error: could not find edition "${editionName}" for card "${cardName}"`)
   }
+
+  if (predicate) await pollUntilPredicate(tabId, predicate)
 
   await waitForTabLoad(tabId)
 
