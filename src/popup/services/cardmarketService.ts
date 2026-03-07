@@ -96,6 +96,11 @@ export function GetCachedSellers(key: string): [Seller[], boolean] {
   return [cloneSellerListings(entry.listings), true]
 }
 
+export function ClearCachedEntry(key: string): void {
+  sellerCache.delete(key)
+  fetchStatusCache.delete(key)
+}
+
 export function HasAnyCachedSellers(cardIds: string[]): boolean {
   return cardIds.some((id) => {
     const entry = sellerCache.get(id)
