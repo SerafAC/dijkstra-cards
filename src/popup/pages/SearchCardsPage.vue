@@ -9,6 +9,8 @@ import { CardService } from '../services/cardService'
 import { Browser } from '../services/browser'
 import { ProjectService } from '../services/projectService'
 import { useProjectStore } from '../stores/projectStore'
+import { sleep } from '../utils/async'
+import { lastUpdatedColor, formatDate } from '../utils/dateUtils'
 import type { Card, CardFilters, CardQuery, PersistedAssignment, PersistedError, Seller, SellerFetchStatus } from '../types/models'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
@@ -146,27 +148,7 @@ async function persistResults() {
   const deckName = CardService.GetDeckFileName()
   if (!deckName) return
 
-  const persistedAssignments: PersistedAssignment[] = []
-  for (const [cardId, seller] of Object.entries(assignments.value)) {
-    const card = selectedCards.value.find((c) => c.Id === cardId)
-    if (card) {
-      persistedAssignments.push({
-        cardName: card.CardName,
-        editionName: card.EditionName,
-        seller,
-        lastUpdated: card.LastUpdated,
-      })
-    }
-  }
-
-  const persistedErrors: PersistedError[] = cardFetchErrors.value.map((status) => {
-    const card = selectedCards.value.find((c) => c.Id === status.cardId)
-    return {
-      cardName: card?.CardName || '',
-      editionName: card?.EditionName || '',
-      errorMessage: status.errorMessage ?? '',
-    }
-  })
+  const { assignments: persistedAssignments, errors: persistedErrors } = await buildPersistedData()
 
   await StorageService.saveSearchResults({
     deckFileName: deckName,
@@ -245,18 +227,6 @@ async function removeAssignments() {
   await autoSaveProject([], [])
 }
 
-function lastUpdatedColor(dateStr?: string): string {
-  if (!dateStr) return ''
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
-  if (days <= 2) return 'var(--p-green-500, #22c55e)'
-  if (days <= 4) return 'var(--p-yellow-500, #eab308)'
-  return 'var(--p-red-500, #ef4444)'
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString()
-}
 
 const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
@@ -326,10 +296,6 @@ function buildQueryFromRow(row: Card): CardQuery {
   }
 }
 
-function delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
-}
-
 async function assignSellers() {
   searchAttempted.value = true
 
@@ -370,7 +336,7 @@ async function assignSellers() {
         fetchProgress.value += 1
       }
 
-      await delay(1000);
+      await sleep(1000)
     }
 
     const newAssignments = await FindOptimalSellers(selectedCards.value)

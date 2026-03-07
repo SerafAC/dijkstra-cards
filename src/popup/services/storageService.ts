@@ -12,118 +12,89 @@ export const DEFAULT_SETTINGS: AppSettings = {
   searchIntervalMs: 5_000,
 }
 
+// --- Chrome storage helpers ---
+
+function storageGet<T>(key: string): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(key, (result) => resolve(result[key] as T | undefined))
+  })
+}
+
+function storageSet(data: Record<string, unknown>): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(data, resolve)
+  })
+}
+
+function storageRemove(key: string): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(key, resolve)
+  })
+}
+
+// --- Public API ---
+
 export const StorageService = {
   async getRecentDecks(): Promise<RecentDeck[]> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(RECENT_DECKS_KEY, (result) => {
-        resolve((result[RECENT_DECKS_KEY] as RecentDeck[]) ?? [])
-      })
-    })
+    return (await storageGet<RecentDeck[]>(RECENT_DECKS_KEY)) ?? []
   },
 
   async addRecentDeck(fileName: string, csvContent: string, cardCount: number): Promise<void> {
     const decks = await this.getRecentDecks()
     const filtered = decks.filter((d) => d.fileName !== fileName)
-    const entry: RecentDeck = {
-      fileName,
-      csvContent,
-      cardCount,
-      loadedAt: new Date().toISOString(),
-    }
-    const updated = [entry, ...filtered].slice(0, MAX_RECENT_DECKS)
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [RECENT_DECKS_KEY]: updated }, resolve)
-    })
+    const entry: RecentDeck = { fileName, csvContent, cardCount, loadedAt: new Date().toISOString() }
+    await storageSet({ [RECENT_DECKS_KEY]: [entry, ...filtered].slice(0, MAX_RECENT_DECKS) })
   },
 
   async removeRecentDeck(fileName: string): Promise<void> {
     const decks = await this.getRecentDecks()
-    const updated = decks.filter((d) => d.fileName !== fileName)
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [RECENT_DECKS_KEY]: updated }, resolve)
-    })
+    await storageSet({ [RECENT_DECKS_KEY]: decks.filter((d) => d.fileName !== fileName) })
   },
 
   async getRecentProjects(): Promise<RecentProject[]> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(RECENT_PROJECTS_KEY, (result) => {
-        resolve((result[RECENT_PROJECTS_KEY] as RecentProject[]) ?? [])
-      })
-    })
+    return (await storageGet<RecentProject[]>(RECENT_PROJECTS_KEY)) ?? []
   },
 
   async addRecentProject(fileName: string, projectContent: string, cardCount: number): Promise<void> {
     const projects = await this.getRecentProjects()
     const filtered = projects.filter((p) => p.fileName !== fileName)
-    const entry: RecentProject = {
-      fileName,
-      projectContent,
-      cardCount,
-      loadedAt: new Date().toISOString(),
-    }
-    const updated = [entry, ...filtered].slice(0, MAX_RECENT_PROJECTS)
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [RECENT_PROJECTS_KEY]: updated }, resolve)
-    })
+    const entry: RecentProject = { fileName, projectContent, cardCount, loadedAt: new Date().toISOString() }
+    await storageSet({ [RECENT_PROJECTS_KEY]: [entry, ...filtered].slice(0, MAX_RECENT_PROJECTS) })
   },
 
   async removeRecentProject(fileName: string): Promise<void> {
     const projects = await this.getRecentProjects()
-    const updated = projects.filter((p) => p.fileName !== fileName)
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [RECENT_PROJECTS_KEY]: updated }, resolve)
-    })
+    await storageSet({ [RECENT_PROJECTS_KEY]: projects.filter((p) => p.fileName !== fileName) })
   },
 
   async getCardFilters(): Promise<CardFilters | null> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(CARD_FILTERS_KEY, (result) => {
-        resolve((result[CARD_FILTERS_KEY] as CardFilters) ?? null)
-      })
-    })
+    return (await storageGet<CardFilters>(CARD_FILTERS_KEY)) ?? null
   },
 
   async saveCardFilters(filters: CardFilters): Promise<void> {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [CARD_FILTERS_KEY]: filters }, resolve)
-    })
+    await storageSet({ [CARD_FILTERS_KEY]: filters })
   },
 
   async getSettings(): Promise<AppSettings> {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(APP_SETTINGS_KEY, (result) => {
-        const stored = result[APP_SETTINGS_KEY] as Partial<AppSettings> | undefined
-        resolve({ ...DEFAULT_SETTINGS, ...stored })
-      })
-    })
+    const stored = await storageGet<Partial<AppSettings>>(APP_SETTINGS_KEY)
+    return { ...DEFAULT_SETTINGS, ...stored }
   },
 
   async saveSettings(settings: AppSettings): Promise<void> {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [APP_SETTINGS_KEY]: settings }, resolve)
-    })
+    await storageSet({ [APP_SETTINGS_KEY]: settings })
   },
-  
+
   async getSearchResults(deckFileName: string): Promise<PersistedSearchResults | null> {
     const key = SEARCH_RESULTS_PREFIX + deckFileName
-    return new Promise((resolve) => {
-      chrome.storage.local.get(key, (result) => {
-        resolve((result[key] as PersistedSearchResults) ?? null)
-      })
-    })
+    return (await storageGet<PersistedSearchResults>(key)) ?? null
   },
 
   async saveSearchResults(results: PersistedSearchResults): Promise<void> {
     const key = SEARCH_RESULTS_PREFIX + results.deckFileName
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [key]: results }, resolve)
-    })
+    await storageSet({ [key]: results })
   },
 
   async removeSearchResults(deckFileName: string): Promise<void> {
-    const key = SEARCH_RESULTS_PREFIX + deckFileName
-    return new Promise((resolve) => {
-      chrome.storage.local.remove(key, resolve)
-    })
+    await storageRemove(SEARCH_RESULTS_PREFIX + deckFileName)
   },
 }

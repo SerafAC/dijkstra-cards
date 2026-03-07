@@ -1,5 +1,6 @@
 import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '../types/models'
 import { openBrowsingTab, closeBrowsingTab, searchCardViaTab } from './tabFetchService'
+import { sleep } from '../utils/async'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
 const defaultRootURL = 'https://www.cardmarket.com/en/Magic'
@@ -294,10 +295,6 @@ export function setSearchIntervalMs(ms: number): void {
   searchIntervalMs = ms
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 async function queryCardPage(query: CardQuery): Promise<{ html: string; url: string }> {
   if (!query.Card.CardName.trim()) {
     throw new Error('card name is required')
@@ -379,6 +376,3 @@ export async function GetFetchStatuses(cardIDs: string[]): Promise<SellerFetchSt
   })
 }
 
-export function Test(): void {
-  console.log('[cardmarketService] Test called')
-}
