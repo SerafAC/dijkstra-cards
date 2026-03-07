@@ -1,4 +1,4 @@
-import type { Card, CardFilters, CardQuery, Seller } from '../types/models'
+import type { Card, CardQuery, Seller } from '../types/models'
 import { openBrowsingTab, closeBrowsingTab, searchCardViaTab } from './tabFetchService'
 import { sleep } from '../utils/async'
 
@@ -15,24 +15,6 @@ export function BuildCardPageURL(card: Card): string {
   const cardName = encodeParam(card.CardName)
   const setName = encodeParam(card.EditionName)
   return `${defaultBaseURL}${setName}/${cardName}`
-}
-
-function buildFilterQueryString(filters?: CardFilters): string {
-  const params: string[] = []
-  if (filters?.language && filters.language.length > 0) {
-    params.push(`language=${filters.language.join(',')}`)
-  }
-  if (filters?.minCondition != null) {
-    params.push(`minCondition=${filters.minCondition}`)
-  }
-  return params.length > 0 ? `?${params.join('&')}` : ''
-}
-
-function BuildSearchURL(query: CardQuery): string {
-  const cardName = encodeParam(query.Card.CardName)
-  const editionName = encodeParam(query.Card.EditionName)
-  const filterQS = buildFilterQueryString(query.Filters)
-  return `${defaultBaseURL}${editionName}/${cardName}${filterQS}`
 }
 
 // --- HTML parsing (ported from Go goquery-based implementation) ---
