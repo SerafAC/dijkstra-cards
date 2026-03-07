@@ -104,6 +104,7 @@ async function restorePersistedResults() {
         const card = cardsByKey.get(key)
         if (card) {
           restored[card.Id] = entry.seller
+          if (entry.lastUpdated) card.LastUpdated = entry.lastUpdated
         }
       }
 
@@ -153,6 +154,7 @@ async function persistResults() {
         cardName: card.CardName,
         editionName: card.EditionName,
         seller,
+        lastUpdated: card.LastUpdated,
       })
     }
   }
@@ -187,6 +189,7 @@ async function buildPersistedData(): Promise<{
         cardName: card.CardName,
         editionName: card.EditionName,
         seller,
+        lastUpdated: card.LastUpdated,
       })
     }
   }
@@ -242,6 +245,19 @@ async function removeAssignments() {
   await autoSaveProject([], [])
 }
 
+function lastUpdatedColor(dateStr?: string): string {
+  if (!dateStr) return ''
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
+  if (days <= 2) return 'var(--p-green-500, #22c55e)'
+  if (days <= 4) return 'var(--p-yellow-500, #eab308)'
+  return 'var(--p-red-500, #ef4444)'
+}
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString()
+}
+
 const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
     const card = selectedCards.value.find((card) => card.Id === entry[0])
@@ -251,6 +267,7 @@ const assignmentRows = computed(() =>
       sellerName: entry[1]?.SellerName ?? 'No seller found',
       price: entry[1]?.Price ?? 0,
       link: card?.Link || '',
+      lastUpdated: card?.LastUpdated,
     }
   }),
 )
@@ -359,6 +376,12 @@ async function assignSellers() {
     const newAssignments = await FindOptimalSellers(selectedCards.value)
     assignments.value = { ...assignments.value, ...newAssignments }
 
+    const now = new Date().toISOString()
+    for (const cardId of Object.keys(newAssignments)) {
+      const card = selectedCards.value.find((c) => c.Id === cardId)
+      if (card) card.LastUpdated = now
+    }
+
     cardFetchErrors.value = (
       await GetFetchStatuses(selectedCards.value.map((card) => card.Id))
     ).filter((status) => status.hadError)
@@ -394,6 +417,10 @@ async function retrySearch(cardId: string) {
   // Recalculate optimal sellers across all cards
   const newAssignments = await FindOptimalSellers(selectedCards.value)
   assignments.value = newAssignments
+
+  const now = new Date().toISOString()
+  const retried = selectedCards.value.find((c) => c.Id === cardId)
+  if (retried && newAssignments[cardId]) retried.LastUpdated = now
 
   cardFetchErrors.value = (
     await GetFetchStatuses(selectedCards.value.map((c) => c.Id))
@@ -603,6 +630,17 @@ async function retrySearch(cardId: string) {
           <Column field="setName" header="Edition" />
           <Column field="sellerName" header="Selected seller" />
           <Column field="price" header="Price" />
+          <Column field="lastUpdated" header="Last Updated">
+            <template #body="slotProps">
+              <span
+                v-if="slotProps.data.lastUpdated"
+                :style="{ color: lastUpdatedColor(slotProps.data.lastUpdated) }"
+              >
+                {{ formatDate(slotProps.data.lastUpdated) }}
+              </span>
+              <span v-else>-</span>
+            </template>
+          </Column>
           <Column field="link" header="Actions">
             <template #body="slotProps">
               <Button
