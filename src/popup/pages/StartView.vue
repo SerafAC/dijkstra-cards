@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CardService } from '../services/cardService'
 import { StorageService } from '../services/storageService'
 import { ProjectService } from '../services/projectService'
 import { useProjectStore } from '../stores/projectStore'
-import type { RecentDeck } from '../types/models'
+import type { RecentDeck, RecentProject } from '../types/models'
 import Image from 'primevue/image'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
@@ -13,14 +13,30 @@ import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 
+type RecentItem =
+  | ({ kind: 'deck' } & RecentDeck)
+  | ({ kind: 'project' } & RecentProject)
+
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const recentDecks = ref<RecentDeck[]>([])
+const recentProjects = ref<RecentProject[]>([])
 const { isProjectLoaded, currentProjectName } = useProjectStore()
 
+const recentItems = computed<RecentItem[]>(() => {
+  const decks: RecentItem[] = recentDecks.value.map((d) => ({ kind: 'deck', ...d }))
+  const projects: RecentItem[] = recentProjects.value.map((p) => ({ kind: 'project', ...p }))
+  return [...decks, ...projects].sort(
+    (a, b) => new Date(b.loadedAt).getTime() - new Date(a.loadedAt).getTime(),
+  )
+})
+
 onMounted(async () => {
-  recentDecks.value = await StorageService.getRecentDecks()
+  ;[recentDecks.value, recentProjects.value] = await Promise.all([
+    StorageService.getRecentDecks(),
+    StorageService.getRecentProjects(),
+  ])
 })
 
 async function onOpenDeck() {
@@ -65,11 +81,50 @@ async function onOpenProject() {
     const result = await ProjectService.open()
     loading.value = false
     if (result) {
+      recentProjects.value = await StorageService.getRecentProjects()
       router.push({ path: '/deck' })
     }
   } catch (er) {
     error.value = er as string
     loading.value = false
+  }
+}
+
+async function onOpenRecentProject(project: RecentProject) {
+  loading.value = true
+  try {
+    const projectFile = JSON.parse(project.projectContent)
+    const result = await ProjectService.restoreProject(projectFile)
+    loading.value = false
+    if (result) {
+      router.push({ path: '/deck' })
+    } else {
+      error.value = `Failed to load "${project.fileName}".`
+    }
+  } catch (er) {
+    error.value = er as string
+    loading.value = false
+  }
+}
+
+async function onRemoveRecentProject(project: RecentProject) {
+  await StorageService.removeRecentProject(project.fileName)
+  recentProjects.value = await StorageService.getRecentProjects()
+}
+
+async function onOpenItem(item: RecentItem) {
+  if (item.kind === 'deck') {
+    await onOpenRecent(item)
+  } else {
+    await onOpenRecentProject(item)
+  }
+}
+
+async function onRemoveItem(item: RecentItem) {
+  if (item.kind === 'deck') {
+    await onRemoveRecent(item)
+  } else {
+    await onRemoveRecentProject(item)
   }
 }
 
@@ -99,12 +154,21 @@ function formatDate(iso: string): string {
 
       <div class="status" v-if="loading">
         <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
-        <span style="margin-left: 8px">Loading CSV...</span>
+        <span style="margin-left: 8px">Loading...</span>
       </div>
 
-      <div v-if="!loading && recentDecks.length" class="recent-decks">
-        <h3 class="recent-title">Recent Decks</h3>
-        <DataTable :value="recentDecks" size="small" scrollable scrollHeight="flex">
+      <div v-if="!loading && recentItems.length" class="recent-decks">
+        <h3 class="recent-title">Recent</h3>
+        <DataTable :value="recentItems" size="small" scrollable scrollHeight="flex">
+          <Column header="" style="width: 2rem; padding-right: 0">
+            <template #body="{ data }">
+              <i
+                :class="data.kind === 'project' ? 'pi pi-file' : 'pi pi-table'"
+                v-tooltip="data.kind === 'project' ? 'Project' : 'Deck'"
+                class="type-icon"
+              />
+            </template>
+          </Column>
           <Column field="fileName" header="File" />
           <Column field="cardCount" header="Cards" style="width: 5rem; text-align: center" />
           <Column header="Opened" style="width: 8rem">
@@ -118,15 +182,15 @@ function formatDate(iso: string): string {
                   size="small"
                   severity="secondary"
                   text
-                  @click="onOpenRecent(data)"
-                  v-tooltip="'Open deck'"
+                  @click="onOpenItem(data)"
+                  v-tooltip="data.kind === 'project' ? 'Open project' : 'Open deck'"
                 />
                 <Button
                   icon="pi pi-trash"
                   size="small"
                   severity="danger"
                   text
-                  @click="onRemoveRecent(data)"
+                  @click="onRemoveItem(data)"
                   v-tooltip="'Remove from list'"
                 />
               </div>
@@ -188,5 +252,10 @@ function formatDate(iso: string): string {
 .row-actions {
   display: flex;
   gap: 0.25rem;
+}
+
+.type-icon {
+  font-size: 0.85rem;
+  color: var(--p-surface-500);
 }
 </style>

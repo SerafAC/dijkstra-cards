@@ -1,10 +1,12 @@
-import type { AppSettings, CardFilters, PersistedSearchResults, RecentDeck } from '../types/models'
+import type { AppSettings, CardFilters, PersistedSearchResults, RecentDeck, RecentProject } from '../types/models'
 
 const RECENT_DECKS_KEY = 'recentDecks'
+const RECENT_PROJECTS_KEY = 'recentProjects'
 const CARD_FILTERS_KEY = 'cardFilters'
 const APP_SETTINGS_KEY = 'appSettings'
 const SEARCH_RESULTS_PREFIX = 'searchResults:'
 const MAX_RECENT_DECKS = 10
+const MAX_RECENT_PROJECTS = 10
 
 export const DEFAULT_SETTINGS: AppSettings = {
   searchIntervalMs: 5_000,
@@ -39,6 +41,37 @@ export const StorageService = {
     const updated = decks.filter((d) => d.fileName !== fileName)
     return new Promise((resolve) => {
       chrome.storage.local.set({ [RECENT_DECKS_KEY]: updated }, resolve)
+    })
+  },
+
+  async getRecentProjects(): Promise<RecentProject[]> {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(RECENT_PROJECTS_KEY, (result) => {
+        resolve((result[RECENT_PROJECTS_KEY] as RecentProject[]) ?? [])
+      })
+    })
+  },
+
+  async addRecentProject(fileName: string, projectContent: string, cardCount: number): Promise<void> {
+    const projects = await this.getRecentProjects()
+    const filtered = projects.filter((p) => p.fileName !== fileName)
+    const entry: RecentProject = {
+      fileName,
+      projectContent,
+      cardCount,
+      loadedAt: new Date().toISOString(),
+    }
+    const updated = [entry, ...filtered].slice(0, MAX_RECENT_PROJECTS)
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [RECENT_PROJECTS_KEY]: updated }, resolve)
+    })
+  },
+
+  async removeRecentProject(fileName: string): Promise<void> {
+    const projects = await this.getRecentProjects()
+    const updated = projects.filter((p) => p.fileName !== fileName)
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [RECENT_PROJECTS_KEY]: updated }, resolve)
     })
   },
 
