@@ -3,12 +3,15 @@ const POLL_INTERVAL_MS = 2_000
 const POLL_TIMEOUT_MS = 10 * 60 * 1_000 // 10 minutes
 const FOCUS_TAB_ON_RETRY = 2 // focus the tab for the user after this many retries
 
-function createTab(url: string): Promise<number> {
+function createTab(url: string, focus = false): Promise<number> {
   return new Promise((resolve, reject) => {
     chrome.tabs.create({ url, active: false }, (tab) => {
       if (chrome.runtime.lastError || tab.id == null) {
         reject(new Error(chrome.runtime.lastError?.message ?? 'Failed to open tab'))
         return
+      }
+      if (focus) {
+        chrome.tabs.update(tab.id, { active: true })
       }
       resolve(tab.id)
     })
@@ -193,7 +196,7 @@ async function pollUntilPredicate(
  * Returns the tab ID for reuse with fetchViaTab.
  */
 export async function openBrowsingTab(rootUrl: string): Promise<number> {
-  const tabId = await createTab(rootUrl)
+  const tabId = await createTab(rootUrl, true)
   await waitForTabLoad(tabId)
   return tabId
 }
