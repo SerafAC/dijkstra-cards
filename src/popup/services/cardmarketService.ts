@@ -1,58 +1,9 @@
-import type { Card, CardFilters, CardQuery, Seller, SellerFetchStatus } from '../types/models'
+import type { Card, CardFilters, CardQuery, Seller } from '../types/models'
 import { openBrowsingTab, closeBrowsingTab, searchCardViaTab } from './tabFetchService'
 import { sleep } from '../utils/async'
 
 const defaultBaseURL = 'https://www.cardmarket.com/en/Magic/Products/Singles/'
 const defaultRootURL = 'https://www.cardmarket.com/en/Magic'
-
-// --- Cache ---
-
-interface SellerCacheEntry {
-  listings: Seller[]
-  fetchErr: string | null
-  fetched: boolean
-}
-
-const sellerCache = new Map<string, SellerCacheEntry>()
-const fetchStatusCache = new Map<string, SellerFetchStatus>()
-
-function cloneSellerListings(listings: Seller[]): Seller[] {
-  if (listings.length === 0) return []
-  return listings.map((s) => ({ ...s }))
-}
-
-function recordFetchStatus(status: SellerFetchStatus): void {
-  fetchStatusCache.set(status.cardId, { ...status })
-}
-
-function storePrefetchedSellers(key: string, listings: Seller[]): void {
-  sellerCache.set(key, {
-    listings: cloneSellerListings(listings),
-    fetchErr: null,
-    fetched: true,
-  })
-  recordFetchStatus({
-    cardId: key,
-    hadError: false,
-    sellersFound: listings.length > 0,
-    fetchAttempted: true,
-  })
-}
-
-function storePrefetchedError(key: string, err: string): void {
-  sellerCache.set(key, {
-    listings: [],
-    fetchErr: err,
-    fetched: true,
-  })
-  recordFetchStatus({
-    cardId: key,
-    hadError: true,
-    errorMessage: err,
-    sellersFound: false,
-    fetchAttempted: true,
-  })
-}
 
 // --- URL building ---
 
@@ -82,31 +33,6 @@ function BuildSearchURL(query: CardQuery): string {
   const editionName = encodeParam(query.Card.EditionName)
   const filterQS = buildFilterQueryString(query.Filters)
   return `${defaultBaseURL}${editionName}/${cardName}${filterQS}`
-}
-
-// --- Seller cache lookup ---
-
-export function GetCachedSellers(key: string): [Seller[], boolean] {
-  const entry = sellerCache.get(key)
-  if (!entry) {
-    return [[], false]
-  }
-  if (entry.fetchErr) {
-    return [[], false]
-  }
-  return [cloneSellerListings(entry.listings), true]
-}
-
-export function ClearCachedEntry(key: string): void {
-  sellerCache.delete(key)
-  fetchStatusCache.delete(key)
-}
-
-export function HasAnyCachedSellers(cardIds: string[]): boolean {
-  return cardIds.some((id) => {
-    const entry = sellerCache.get(id)
-    return entry != null && entry.fetched && !entry.fetchErr
-  })
 }
 
 // --- HTML parsing (ported from Go goquery-based implementation) ---
@@ -321,58 +247,15 @@ async function queryCardPage(query: CardQuery): Promise<{ html: string; url: str
 // --- Public API ---
 
 export async function GetCardSellers(query: CardQuery): Promise<Seller[]> {
-  const key = query.Card.Id
+  const { html: body, url: cardUrl } = await queryCardPage(query)
 
-  const [cached, ok] = GetCachedSellers(key)
-  if (ok) {
-    return cached
-  }
-
-  let body: string
-  let cardUrl: string
-  try {
-    const result = await queryCardPage(query)
-    body = result.html
-    cardUrl = result.url
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    storePrefetchedError(key, msg)
-    throw err
-  }
-
-  let sellers: Seller[]
-  try {
-    sellers = ParseSellerListings(body)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    storePrefetchedError(key, msg)
-    throw err
-  }
+  const sellers = ParseSellerListings(body)
 
   if (sellers.length === 0) {
-    const msg = 'Sellers not found: Empty list'
-    storePrefetchedError(key, msg)
-    throw new Error(msg)
+    throw new Error('Sellers not found: Empty list')
   }
 
-  storePrefetchedSellers(key, sellers)
   query.Card.Link = cardUrl
-  return cloneSellerListings(sellers)
-}
-
-export async function GetFetchStatuses(cardIDs: string[]): Promise<SellerFetchStatus[]> {
-  return cardIDs.map((id) => {
-    const status = fetchStatusCache.get(id)
-    if (status) {
-      return { ...status }
-    }
-    return {
-      cardId: id,
-      hadError: false,
-      errorMessage: '',
-      sellersFound: false,
-      fetchAttempted: false,
-    }
-  })
+  return sellers.map((s) => ({ ...s }))
 }
 

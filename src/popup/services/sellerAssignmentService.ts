@@ -1,5 +1,4 @@
 import type { Card, Seller } from '../types/models'
-import { GetCachedSellers } from './cardmarketService'
 
 interface SellerCoverage {
   sellerKey: string
@@ -78,11 +77,12 @@ function selectBestSeller(
 /**
  * Greedy set-cover algorithm: repeatedly picks the seller covering the most
  * unassigned cards (ties broken by lowest total price), until all cards with
- * cached sellers are assigned. Any cards still unassigned afterwards are
+ * available sellers are assigned. Any cards still unassigned afterwards are
  * assigned to their first available seller as a fallback.
  */
 export async function FindOptimalSellers(
   cards: Card[],
+  offersMap: Map<string, Seller[]>,
 ): Promise<Record<string, Seller>> {
   if (cards.length === 0) {
     throw new Error('no cards provided for assignment')
@@ -92,8 +92,8 @@ export async function FindOptimalSellers(
   const offers = new Map<string, Seller[]>()
 
   for (const card of cards) {
-    const [cardSellers, ok] = GetCachedSellers(card.Id)
-    if (ok && cardSellers.length > 0) {
+    const cardSellers = offersMap.get(card.Id) ?? []
+    if (cardSellers.length > 0) {
       offers.set(card.Id, cardSellers)
     }
   }
