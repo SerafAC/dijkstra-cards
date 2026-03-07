@@ -43,6 +43,13 @@ export interface RecentDeck {
   loadedAt: string
 }
 
+export interface RecentProject {
+  fileName: string
+  projectContent: string
+  cardCount: number
+  loadedAt: string
+}
+
 export interface AppSettings {
   searchIntervalMs: number
 }

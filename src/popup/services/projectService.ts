@@ -141,6 +141,7 @@ export const ProjectService = {
         const success = await this.restoreProject(project)
         if (success) {
           setProjectFileHandle(handle)
+          await StorageService.addRecentProject(file.name, text, project.selectedCards?.length ?? 0)
         }
         return success
       } catch (err: unknown) {
@@ -173,6 +174,7 @@ export const ProjectService = {
           const success = await this.restoreProject(project)
           if (success) {
             setProjectFileName(file.name)
+            await StorageService.addRecentProject(file.name, text, project.selectedCards?.length ?? 0)
           }
           resolve(success)
         } catch {
