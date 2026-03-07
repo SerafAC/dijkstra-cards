@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { CardService } from '../services/cardService'
-import { saveSelectedCards } from '../stores/selectedCards'
+import { saveSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { Browser } from '../services/browser'
 import type { Card } from '../types/models'
 import Message from 'primevue/message'
@@ -24,6 +24,16 @@ function handleNext() {
 
 onMounted(async () => {
   cards.value = await CardService.GetCards()
+
+  const storedCards = useSelectedCards()
+  if (storedCards.value.length) {
+    const storedIds = new Set(storedCards.value.map((c) => c.Id))
+    selectedCards.value = cards.value.filter((c) => storedIds.has(c.Id))
+  }
+})
+
+onBeforeUnmount(() => {
+  saveSelectedCards(selectedCards.value)
 })
 </script>
 
