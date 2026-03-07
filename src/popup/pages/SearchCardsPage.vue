@@ -3,7 +3,7 @@ import { computed, onMounted, Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { clearSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
-import { GetCardSellers, GetFetchStatuses, HasAnyCachedSellers, closeBrowsingSession } from '../services/cardmarketService'
+import { GetCardSellers, GetFetchStatuses, HasAnyCachedSellers, ClearCachedEntry, closeBrowsingSession } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
 import { CardService } from '../services/cardService'
 import { Browser } from '../services/browser'
@@ -23,6 +23,7 @@ const hasCards = computed(() => selectedCards.value.length > 0)
 const assignments: Ref<Record<string, Seller>> = ref({})
 const cardFetchErrors: Ref<SellerFetchStatus[]> = ref([])
 const isSearching = ref(false)
+const retryingCardId = ref<string | null>(null)
 const searchAttempted = ref(false)
 const fetchProgress = ref(0)
 const fetchTotal = ref(0)
@@ -372,6 +373,35 @@ async function assignSellers() {
     currentCardName.value = ''
   }
 }
+
+async function retrySearch(cardId: string) {
+  const card = selectedCards.value.find((c) => c.Id === cardId)
+  if (!card) return
+
+  retryingCardId.value = cardId
+
+  try {
+    ClearCachedEntry(cardId)
+
+    const query = buildQueryFromRow(card)
+    await GetCardSellers(query)
+  } catch (err) {
+    console.error('Retry search failed for card', card.CardName, err)
+  } finally {
+    closeBrowsingSession()
+  }
+
+  // Recalculate optimal sellers across all cards
+  const newAssignments = await FindOptimalSellers(selectedCards.value)
+  assignments.value = newAssignments
+
+  cardFetchErrors.value = (
+    await GetFetchStatuses(selectedCards.value.map((c) => c.Id))
+  ).filter((status) => status.hadError)
+
+  await persistResults()
+  retryingCardId.value = null
+}
 </script>
 
 <template>
@@ -523,26 +553,38 @@ async function assignSellers() {
                 </span>
               </template>
             </Column>
-            <Column header="Link">
+            <Column header="Actions">
               <template #body="slotProps">
-                <Button
-                  icon="pi pi-external-link"
-                  aria-label="Market Link"
-                  size="small"
-                  severity="secondary"
-                  :disabled="!slotProps.data.link"
-                  v-tooltip="slotProps.data.link"
-                  @click="Browser.OpenURL(slotProps.data.link)"
-                />
-                <Button
-                  icon="pi pi-search"
-                  aria-label="Market Search Link"
-                  size="small"
-                  severity="secondary"
-                  :disabled="!slotProps.data.link"
-                  v-tooltip="'Search market by a card name'"
-                  @click="Browser.OpenURL(searchCardByNameUrl(slotProps.data.cardName))"
-                />
+                <div class="failed-actions">
+                  <Button
+                    icon="pi pi-external-link"
+                    aria-label="Market Link"
+                    size="small"
+                    severity="secondary"
+                    :disabled="!slotProps.data.link"
+                    v-tooltip="slotProps.data.link"
+                    @click="Browser.OpenURL(slotProps.data.link)"
+                  />
+                  <Button
+                    icon="pi pi-search"
+                    aria-label="Market Search Link"
+                    size="small"
+                    severity="secondary"
+                    :disabled="!slotProps.data.link"
+                    v-tooltip="'Search market by a card name'"
+                    @click="Browser.OpenURL(searchCardByNameUrl(slotProps.data.cardName))"
+                  />
+                  <Button
+                    label="Retry search"
+                    icon="pi pi-refresh"
+                    size="small"
+                    severity="warn"
+                    outlined
+                    :disabled="isSearching || retryingCardId !== null"
+                    :loading="retryingCardId === slotProps.data.id"
+                    @click="retrySearch(slotProps.data.id)"
+                  />
+                </div>
               </template>
             </Column>
           </DataTable>
@@ -561,7 +603,7 @@ async function assignSellers() {
           <Column field="setName" header="Edition" />
           <Column field="sellerName" header="Selected seller" />
           <Column field="price" header="Price" />
-          <Column field="link" header="Market Link">
+          <Column field="link" header="Actions">
             <template #body="slotProps">
               <Button
                 icon="pi pi-external-link"
@@ -721,6 +763,12 @@ async function assignSellers() {
   border: 1px solid var(--surface-border);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.failed-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .status-chip {
