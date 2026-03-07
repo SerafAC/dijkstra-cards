@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { CardService } from '../services/cardService'
-import { saveSelectedCards } from '../stores/selectedCards'
+import { saveSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { Browser } from '../services/browser'
 import type { Card } from '../types/models'
 import Message from 'primevue/message'
@@ -22,8 +22,35 @@ function handleNext() {
   router.push('/search')
 }
 
+function lastUpdatedColor(dateStr?: string): string {
+  if (!dateStr) return ''
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
+  if (days <= 2) return 'var(--p-green-500, #22c55e)'
+  if (days <= 4) return 'var(--p-yellow-500, #eab308)'
+  return 'var(--p-red-500, #ef4444)'
+}
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString()
+}
+
 onMounted(async () => {
   cards.value = await CardService.GetCards()
+
+  const storedCards = useSelectedCards()
+  if (storedCards.value.length) {
+    const storedById = new Map(storedCards.value.map((c) => [c.Id, c]))
+    for (const card of cards.value) {
+      const stored = storedById.get(card.Id)
+      if (stored?.LastUpdated) card.LastUpdated = stored.LastUpdated
+    }
+    selectedCards.value = cards.value.filter((c) => storedById.has(c.Id))
+  }
+})
+
+onBeforeUnmount(() => {
+  saveSelectedCards(selectedCards.value)
 })
 </script>
 
@@ -63,6 +90,17 @@ onMounted(async () => {
         <Column field="Quantity" header="Quantity" />
         <Column field="CardName" header="Card Name" />
         <Column field="EditionName" header="Edition Name" />
+        <Column field="LastUpdated" header="Last Updated">
+          <template #body="slotProps">
+            <span
+              v-if="slotProps.data.LastUpdated"
+              :style="{ color: lastUpdatedColor(slotProps.data.LastUpdated) }"
+            >
+              {{ formatDate(slotProps.data.LastUpdated) }}
+            </span>
+            <span v-else class="no-data">-</span>
+          </template>
+        </Column>
         <Column field="Link" header="Market Link">
           <template #body="slotProps">
             <Button

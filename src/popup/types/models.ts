@@ -4,6 +4,7 @@ export interface Card {
   CardName: string
   EditionName: string
   Link: string
+  LastUpdated?: string
 }
 
 export interface Seller {
@@ -50,6 +51,7 @@ export interface PersistedAssignment {
   cardName: string
   editionName: string
   seller: Seller
+  lastUpdated?: string
 }
 
 export interface PersistedError {
