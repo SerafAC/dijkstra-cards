@@ -3,12 +3,14 @@ import { computed, onMounted, Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { clearSelectedCards, useSelectedCards } from '../stores/selectedCards'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
-import { GetCardSellers, GetFetchStatuses, HasAnyCachedSellers, ClearCachedEntry, closeBrowsingSession } from '../services/cardmarketService'
+import { GetCardSellers, closeBrowsingSession } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
 import { CardService } from '../services/cardService'
 import { Browser } from '../services/browser'
 import { ProjectService } from '../services/projectService'
 import { useProjectStore } from '../stores/projectStore'
+import { sleep } from '../utils/async'
+import { lastUpdatedColor, formatDate } from '../utils/dateUtils'
 import type { Card, CardFilters, CardQuery, PersistedAssignment, PersistedError, Seller, SellerFetchStatus } from '../types/models'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
@@ -28,6 +30,7 @@ const searchAttempted = ref(false)
 const fetchProgress = ref(0)
 const fetchTotal = ref(0)
 const currentCardName = ref('')
+const sellersByCard = new Map<string, Seller[]>()
 
 const languageOptions = [
   { label: 'English', value: 1 },
@@ -132,41 +135,13 @@ async function restorePersistedResults() {
     }
   }
 
-  // Fall back to in-memory seller cache (same session, navigated away and back)
-  const cardIds = selectedCards.value.map((c) => c.Id)
-  if (HasAnyCachedSellers(cardIds)) {
-    assignments.value = await FindOptimalSellers(selectedCards.value)
-    cardFetchErrors.value = (await GetFetchStatuses(cardIds)).filter((s) => s.hadError)
-    searchAttempted.value = true
-    await persistResults()
-  }
 }
 
 async function persistResults() {
   const deckName = CardService.GetDeckFileName()
   if (!deckName) return
 
-  const persistedAssignments: PersistedAssignment[] = []
-  for (const [cardId, seller] of Object.entries(assignments.value)) {
-    const card = selectedCards.value.find((c) => c.Id === cardId)
-    if (card) {
-      persistedAssignments.push({
-        cardName: card.CardName,
-        editionName: card.EditionName,
-        seller,
-        lastUpdated: card.LastUpdated,
-      })
-    }
-  }
-
-  const persistedErrors: PersistedError[] = cardFetchErrors.value.map((status) => {
-    const card = selectedCards.value.find((c) => c.Id === status.cardId)
-    return {
-      cardName: card?.CardName || '',
-      editionName: card?.EditionName || '',
-      errorMessage: status.errorMessage ?? '',
-    }
-  })
+  const { assignments: persistedAssignments, errors: persistedErrors } = await buildPersistedData()
 
   await StorageService.saveSearchResults({
     deckFileName: deckName,
@@ -245,18 +220,6 @@ async function removeAssignments() {
   await autoSaveProject([], [])
 }
 
-function lastUpdatedColor(dateStr?: string): string {
-  if (!dateStr) return ''
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
-  if (days <= 2) return 'var(--p-green-500, #22c55e)'
-  if (days <= 4) return 'var(--p-yellow-500, #eab308)'
-  return 'var(--p-red-500, #ef4444)'
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString()
-}
 
 const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
@@ -326,10 +289,6 @@ function buildQueryFromRow(row: Card): CardQuery {
   }
 }
 
-function delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
-}
-
 async function assignSellers() {
   searchAttempted.value = true
 
@@ -359,21 +318,28 @@ async function assignSellers() {
     fetchProgress.value = 0
     fetchTotal.value = queries.length
 
+    const fetchedIds = new Set<string>()
+    const newErrors: SellerFetchStatus[] = []
+
     for (const query of queries) {
       currentCardName.value = query.Card.CardName
+      fetchedIds.add(query.Card.Id)
 
       try {
-        await GetCardSellers(query)
+        const sellers = await GetCardSellers(query)
+        sellersByCard.set(query.Card.Id, sellers)
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        newErrors.push({ cardId: query.Card.Id, hadError: true, errorMessage: msg, sellersFound: false, fetchAttempted: true })
         console.error('Failed fetching sellers for card', query, err)
       } finally {
         fetchProgress.value += 1
       }
 
-      await delay(1000);
+      await sleep(1000)
     }
 
-    const newAssignments = await FindOptimalSellers(selectedCards.value)
+    const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
     assignments.value = { ...assignments.value, ...newAssignments }
 
     const now = new Date().toISOString()
@@ -382,9 +348,8 @@ async function assignSellers() {
       if (card) card.LastUpdated = now
     }
 
-    cardFetchErrors.value = (
-      await GetFetchStatuses(selectedCards.value.map((card) => card.Id))
-    ).filter((status) => status.hadError)
+    const keptErrors = cardFetchErrors.value.filter((e) => !fetchedIds.has(e.cardId))
+    cardFetchErrors.value = [...keptErrors, ...newErrors]
 
     await persistResults()
   } catch (err) {
@@ -402,29 +367,30 @@ async function retrySearch(cardId: string) {
   if (!card) return
 
   retryingCardId.value = cardId
+  sellersByCard.delete(cardId)
 
   try {
-    ClearCachedEntry(cardId)
-
-    const query = buildQueryFromRow(card)
-    await GetCardSellers(query)
+    const sellers = await GetCardSellers(buildQueryFromRow(card))
+    sellersByCard.set(cardId, sellers)
+    cardFetchErrors.value = cardFetchErrors.value.filter((e) => e.cardId !== cardId)
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    cardFetchErrors.value = [
+      ...cardFetchErrors.value.filter((e) => e.cardId !== cardId),
+      { cardId, hadError: true, errorMessage: msg, sellersFound: false, fetchAttempted: true },
+    ]
     console.error('Retry search failed for card', card.CardName, err)
   } finally {
     closeBrowsingSession()
   }
 
   // Recalculate optimal sellers across all cards
-  const newAssignments = await FindOptimalSellers(selectedCards.value)
+  const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
   assignments.value = newAssignments
 
   const now = new Date().toISOString()
   const retried = selectedCards.value.find((c) => c.Id === cardId)
   if (retried && newAssignments[cardId]) retried.LastUpdated = now
-
-  cardFetchErrors.value = (
-    await GetFetchStatuses(selectedCards.value.map((c) => c.Id))
-  ).filter((status) => status.hadError)
 
   await persistResults()
   retryingCardId.value = null
