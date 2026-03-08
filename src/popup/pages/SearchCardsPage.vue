@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { clearSelectedCards, useSelectedCards } from '../stores/selectedCards'
+import { clearSelectedCards, useSelectedCards, getStoredDeckFileName } from '../stores/selectedCards'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
 import { GetCardSellers, closeBrowsingSession } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
@@ -89,52 +89,47 @@ function cardKey(card: { CardName: string; EditionName: string }): string {
 }
 
 async function restorePersistedResults() {
-  if (!hasCards.value) return
+  const deckName = CardService.GetDeckFileName() || getStoredDeckFileName()
+  if (!deckName) return
 
-  // First try restoring from persistent storage
-  const deckName = CardService.GetDeckFileName()
-  if (deckName) {
-    const saved = await StorageService.getSearchResults(deckName)
-    if (saved) {
-      const cardsByKey = new Map<string, Card>()
-      for (const card of selectedCards.value) {
-        cardsByKey.set(cardKey(card), card)
-      }
+  const saved = await StorageService.getSearchResults(deckName)
+  if (!saved) return
 
-      const restored: Record<string, Seller> = {}
-      for (const entry of saved.assignments) {
-        const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
-        const card = cardsByKey.get(key)
-        if (card) {
-          restored[card.Id] = entry.seller
-          if (entry.lastUpdated) card.LastUpdated = entry.lastUpdated
-        }
-      }
+  const cardsByKey = new Map<string, Card>()
+  for (const card of selectedCards.value) {
+    cardsByKey.set(cardKey(card), card)
+  }
 
-      const restoredErrors: SellerFetchStatus[] = []
-      for (const entry of saved.errors) {
-        const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
-        const card = cardsByKey.get(key)
-        if (card) {
-          restoredErrors.push({
-            cardId: card.Id,
-            hadError: true,
-            errorMessage: entry.errorMessage,
-            sellersFound: false,
-            fetchAttempted: true,
-          })
-        }
-      }
-
-      if (Object.keys(restored).length > 0 || restoredErrors.length > 0) {
-        assignments.value = restored
-        cardFetchErrors.value = restoredErrors
-        searchAttempted.value = true
-        return
-      }
+  const restored: Record<string, Seller> = {}
+  for (const entry of saved.assignments) {
+    const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
+    const card = cardsByKey.get(key)
+    if (card) {
+      restored[card.Id] = entry.seller
+      if (entry.lastUpdated) card.LastUpdated = entry.lastUpdated
     }
   }
 
+  const restoredErrors: SellerFetchStatus[] = []
+  for (const entry of saved.errors) {
+    const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
+    const card = cardsByKey.get(key)
+    if (card) {
+      restoredErrors.push({
+        cardId: card.Id,
+        hadError: true,
+        errorMessage: entry.errorMessage,
+        sellersFound: false,
+        fetchAttempted: true,
+      })
+    }
+  }
+
+  if (Object.keys(restored).length > 0 || restoredErrors.length > 0) {
+    assignments.value = restored
+    cardFetchErrors.value = restoredErrors
+    searchAttempted.value = true
+  }
 }
 
 async function persistResults() {

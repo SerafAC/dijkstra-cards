@@ -2,7 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { CardService } from '../services/cardService'
-import { saveSelectedCards, useSelectedCards } from '../stores/selectedCards'
+import { saveSelectedCards, useSelectedCards, getStoredDeckFileName } from '../stores/selectedCards'
 import { Browser } from '../services/browser'
 import { lastUpdatedColor, formatDate } from '../utils/dateUtils'
 import type { Card } from '../types/models'
@@ -15,11 +15,13 @@ const errorMsg = ref<string | null>(null)
 const cards = ref<Card[]>([])
 const selectedCards = ref<Card[]>([])
 const router = useRouter()
+let navigatingToSearch = false
 
 function handleNext() {
   if (!selectedCards.value.length) return
 
-  saveSelectedCards(selectedCards.value)
+  saveSelectedCards(selectedCards.value, CardService.GetDeckFileName())
+  navigatingToSearch = true
   router.push('/search')
 }
 
@@ -39,7 +41,9 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  saveSelectedCards(selectedCards.value)
+  if (!navigatingToSearch) {
+    saveSelectedCards(selectedCards.value, CardService.GetDeckFileName() || getStoredDeckFileName())
+  }
 })
 </script>
 
