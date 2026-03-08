@@ -19,6 +19,44 @@ export function BuildCardPageURL(card: Card): string {
 
 // --- HTML parsing (ported from Go goquery-based implementation) ---
 
+const COUNTRY_NAME_TO_ID: Record<string, number> = {
+  'Austria': 1,
+  'Belgium': 2,
+  'Bulgaria': 3,
+  'Switzerland': 4,
+  'Cyprus': 5,
+  'Czech Republic': 6,
+  'Germany': 7,
+  'Denmark': 8,
+  'Estonia': 9,
+  'Spain': 10,
+  'Finland': 11,
+  'France': 12,
+  'United Kingdom': 13,
+  'Greece': 14,
+  'Hungary': 15,
+  'Ireland': 16,
+  'Italy': 17,
+  'Liechtenstein': 18,
+  'Lithuania': 19,
+  'Luxembourg': 20,
+  'Latvia': 21,
+  'Malta': 22,
+  'Netherlands': 23,
+  'Norway': 24,
+  'Poland': 25,
+  'Portugal': 26,
+  'Romania': 27,
+  'Sweden': 28,
+  'Singapore': 29,
+  'Slovenia': 30,
+  'Slovakia': 31,
+  'Canada': 33,
+  'Croatia': 35,
+  'Japan': 36,
+  'Iceland': 37,
+}
+
 function extractSellerName(row: Element): string {
   const anchor = row.querySelector('.seller-name a')
   if (anchor) {
@@ -150,9 +188,11 @@ export function ParseSellerListings(body: string): Seller[] {
   const listings: Seller[] = []
 
   rows.forEach((row) => {
+    const sellerCountry = extractSellerCountry(row)
     const listing: Seller = {
       SellerName: extractSellerName(row),
-      SellerCountry: extractSellerCountry(row),
+      SellerCountry: sellerCountry,
+      SellerCountryId: COUNTRY_NAME_TO_ID[sellerCountry] ?? 0,
       CardCondition: extractCardCondition(row),
       CardsAmmount: extractCardsAmount(row),
       Price: 0,

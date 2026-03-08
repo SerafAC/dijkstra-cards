@@ -55,16 +55,64 @@ const conditionOptions = [
   { label: 'Played', value: 6 },
 ]
 
+const sellerCountryOptions = [
+  { label: '🇦🇹 Austria', value: 1 },
+  { label: '🇧🇪 Belgium', value: 2 },
+  { label: '🇧🇬 Bulgaria', value: 3 },
+  { label: '🇨🇭 Switzerland', value: 4 },
+  { label: '🇨🇾 Cyprus', value: 5 },
+  { label: '🇨🇿 Czech Republic', value: 6 },
+  { label: '🇩🇪 Germany', value: 7 },
+  { label: '🇩🇰 Denmark', value: 8 },
+  { label: '🇪🇪 Estonia', value: 9 },
+  { label: '🇪🇸 Spain', value: 10 },
+  { label: '🇫🇮 Finland', value: 11 },
+  { label: '🇫🇷 France', value: 12 },
+  { label: '🇬🇧 United Kingdom', value: 13 },
+  { label: '🇬🇷 Greece', value: 14 },
+  { label: '🇭🇺 Hungary', value: 15 },
+  { label: '🇮🇪 Ireland', value: 16 },
+  { label: '🇮🇹 Italy', value: 17 },
+  { label: '🇱🇮 Liechtenstein', value: 18 },
+  { label: '🇱🇹 Lithuania', value: 19 },
+  { label: '🇱🇺 Luxembourg', value: 20 },
+  { label: '🇱🇻 Latvia', value: 21 },
+  { label: '🇲🇹 Malta', value: 22 },
+  { label: '🇳🇱 Netherlands', value: 23 },
+  { label: '🇳🇴 Norway', value: 24 },
+  { label: '🇵🇱 Poland', value: 25 },
+  { label: '🇵🇹 Portugal', value: 26 },
+  { label: '🇷🇴 Romania', value: 27 },
+  { label: '🇸🇪 Sweden', value: 28 },
+  { label: '🇸🇬 Singapore', value: 29 },
+  { label: '🇸🇮 Slovenia', value: 30 },
+  { label: '🇸🇰 Slovakia', value: 31 },
+  { label: '🇨🇦 Canada', value: 33 },
+  { label: '🇭🇷 Croatia', value: 35 },
+  { label: '🇯🇵 Japan', value: 36 },
+  { label: '🇮🇸 Iceland', value: 37 },
+]
+
+const COUNTRY_ID_TO_FLAG: Record<number, string> = Object.fromEntries(
+  sellerCountryOptions.map((c) => [c.value, c.label.split(' ')[0]]),
+)
+
+function getCountryFlag(countryId: number): string {
+  return COUNTRY_ID_TO_FLAG[countryId] ?? ''
+}
+
 const { isProjectLoaded } = useProjectStore()
 
 const selectedLanguages: Ref<number[]> = ref([])
 const selectedMinCondition: Ref<number | null> = ref(null)
+const selectedSellerCountries: Ref<number[]> = ref([])
 
 onMounted(async () => {
   const saved = await StorageService.getCardFilters()
   if (saved) {
     selectedLanguages.value = saved.language ?? []
     selectedMinCondition.value = saved.minCondition ?? null
+    selectedSellerCountries.value = saved.sellerCountry ?? []
   }
 
   await restorePersistedResults()
@@ -74,6 +122,7 @@ async function saveFilters() {
   const filters: CardFilters = {
     language: selectedLanguages.value,
     minCondition: selectedMinCondition.value,
+    sellerCountry: selectedSellerCountries.value,
   }
   await StorageService.saveCardFilters(filters)
 }
@@ -81,7 +130,8 @@ async function saveFilters() {
 async function clearSavedFilters() {
   selectedLanguages.value = []
   selectedMinCondition.value = null
-  await StorageService.saveCardFilters({ language: [], minCondition: null })
+  selectedSellerCountries.value = []
+  await StorageService.saveCardFilters({ language: [], minCondition: null, sellerCountry: [] })
 }
 
 function cardKey(card: { CardName: string; EditionName: string }): string {
@@ -195,6 +245,7 @@ async function autoSaveProject(
   const filters: CardFilters = {
     language: selectedLanguages.value,
     minCondition: selectedMinCondition.value,
+    sellerCountry: selectedSellerCountries.value,
   }
 
   await ProjectService.autoSave(
@@ -211,6 +262,7 @@ async function saveProjectAs() {
   const filters: CardFilters = {
     language: selectedLanguages.value,
     minCondition: selectedMinCondition.value,
+    sellerCountry: selectedSellerCountries.value,
   }
   await ProjectService.saveAs(selectedCards.value, filters, pa, pe, sellersByCard)
 }
@@ -234,6 +286,8 @@ const assignmentRows = computed(() =>
       cardName: card?.CardName || 'Unknown card',
       setName: card?.EditionName || 'Unknown edition',
       sellerName: entry[1]?.SellerName ?? 'No seller found',
+      sellerCountryFlag: getCountryFlag(entry[1]?.SellerCountryId ?? 0),
+      sellerCountry: entry[1]?.SellerCountry ?? '',
       price: entry[1]?.Price ?? 0,
       link: card?.Link || '',
       lastUpdated: card?.LastUpdated,
@@ -286,6 +340,7 @@ function buildQueryFromRow(row: Card): CardQuery {
   const filters: CardFilters = {
     language: selectedLanguages.value,
     minCondition: selectedMinCondition.value,
+    sellerCountry: selectedSellerCountries.value,
   }
   return {
     Card: row,
@@ -449,6 +504,18 @@ async function retrySearch(cardId: string) {
             showClear
           />
         </div>
+        <div class="filter-group">
+          <label>Seller Country</label>
+          <MultiSelect
+            v-model="selectedSellerCountries"
+            :options="sellerCountryOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Any country"
+            :maxSelectedLabels="2"
+            filter
+          />
+        </div>
         <div class="filter-actions">
           <Button
             icon="pi pi-save"
@@ -600,7 +667,17 @@ async function retrySearch(cardId: string) {
         <DataTable v-if="hasAssignments" size="small" :value="assignmentRows">
           <Column field="cardName" header="Card name" />
           <Column field="setName" header="Edition" />
-          <Column field="sellerName" header="Selected seller" />
+          <Column field="sellerName" header="Selected seller">
+            <template #body="slotProps">
+              <span>
+                <span
+                  v-if="slotProps.data.sellerCountryFlag"
+                  :title="slotProps.data.sellerCountry"
+                  class="seller-flag"
+                >{{ slotProps.data.sellerCountryFlag }}</span>{{ slotProps.data.sellerName }}
+              </span>
+            </template>
+          </Column>
           <Column field="price" header="Price" />
           <Column field="lastUpdated" header="Last Updated">
             <template #body="slotProps">
@@ -795,6 +872,10 @@ async function retrySearch(cardId: string) {
   font-size: 0.85rem;
   background: color-mix(in srgb, var(--p-red-500) 20%, transparent);
   color: var(--text-color-secondary);
+}
+
+.seller-flag {
+  margin-right: 0.3rem;
 }
 
 .results-placeholder {
