@@ -10,6 +10,7 @@ export interface Card {
 export interface Seller {
   SellerName: string
   SellerCountry: string
+  SellerCountryId: number
   CardCondition: string
   CardsAmmount: number
   Price: number
@@ -19,6 +20,7 @@ export interface Seller {
 export interface CardFilters {
   language: number[]
   minCondition: number | null
+  sellerCountry: number[]
 }
 
 export interface CardQuery {

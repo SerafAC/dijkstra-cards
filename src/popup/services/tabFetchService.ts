@@ -95,6 +95,7 @@ function checkIsCardPage(tabId: number): Promise<boolean> {
 interface TabCardFilters {
   language?: number[]
   minCondition?: number | null
+  sellerCountry?: number[]
 }
 
 async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise<void> {
@@ -105,6 +106,11 @@ async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise
   }
   if (filters?.minCondition) {
     url.searchParams.set('minCondition', filters.minCondition.toString())
+  }
+  if (filters?.sellerCountry && filters.sellerCountry.length > 0) {
+    for (const countryId of filters.sellerCountry) {
+      url.searchParams.append(`sellerCountry[${countryId}]`, countryId.toString())
+    }
   }
   navigateTab(tabId, url.toString());
 }
@@ -293,7 +299,9 @@ async function applyFiltersAndRead(
   const url = await readTabUrl(tabId)
 
   const hasFilters = filters &&
-    ((filters.language && filters.language.length > 0) || filters.minCondition != null)
+    ((filters.language && filters.language.length > 0) ||
+      filters.minCondition != null ||
+      (filters.sellerCountry && filters.sellerCountry.length > 0))
 
   if (hasFilters) {
     await applyCardFilters(tabId, filters)
