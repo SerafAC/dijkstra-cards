@@ -1,6 +1,6 @@
 {
   "name": "dijkstra-cards",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A carts shopping cart optimizer.",
   "type": "module",
   "scripts": {
