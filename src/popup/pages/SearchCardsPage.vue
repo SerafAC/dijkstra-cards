@@ -125,6 +125,16 @@ async function restorePersistedResults() {
     }
   }
 
+  if (saved.sellersByCard?.length) {
+    for (const entry of saved.sellersByCard) {
+      const key = cardKey({ CardName: entry.cardName, EditionName: entry.editionName })
+      const card = cardsByKey.get(key)
+      if (card) {
+        sellersByCard.set(card.Id, entry.sellers)
+      }
+    }
+  }
+
   if (Object.keys(restored).length > 0 || restoredErrors.length > 0) {
     assignments.value = restored
     cardFetchErrors.value = restoredErrors
@@ -192,6 +202,7 @@ async function autoSaveProject(
     filters,
     persistedAssignments,
     persistedErrors,
+    sellersByCard,
   )
 }
 
@@ -201,7 +212,7 @@ async function saveProjectAs() {
     language: selectedLanguages.value,
     minCondition: selectedMinCondition.value,
   }
-  await ProjectService.saveAs(selectedCards.value, filters, pa, pe)
+  await ProjectService.saveAs(selectedCards.value, filters, pa, pe, sellersByCard)
 }
 
 async function removeAssignments() {

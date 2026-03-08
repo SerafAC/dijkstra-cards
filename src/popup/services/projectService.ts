@@ -1,4 +1,4 @@
-import type { Card, CardFilters, PersistedAssignment, PersistedError, ProjectFile } from '../types/models'
+import type { Card, CardFilters, PersistedAssignment, PersistedError, PersistedSellersByCard, ProjectFile, Seller } from '../types/models'
 import { CardService } from './cardService'
 import { StorageService } from './storageService'
 import { saveSelectedCards } from '../stores/selectedCards'
@@ -14,9 +14,18 @@ function buildProjectData(
   filters: CardFilters | null,
   persistedAssignments: PersistedAssignment[],
   persistedErrors: PersistedError[],
+  sellersByCard: Map<string, Seller[]>,
 ): ProjectFile {
   const csvContent = CardService.GetCsvContent()
   const deckFileName = CardService.GetDeckFileName()
+
+  const persistedSellersByCard: PersistedSellersByCard[] = []
+  for (const [cardId, sellers] of sellersByCard) {
+    const card = selectedCards.find((c) => c.Id === cardId)
+    if (card) {
+      persistedSellersByCard.push({ cardName: card.CardName, editionName: card.EditionName, sellers })
+    }
+  }
 
   return {
     version: 1,
@@ -29,6 +38,7 @@ function buildProjectData(
     filters,
     assignments: persistedAssignments,
     errors: persistedErrors,
+    sellersByCard: persistedSellersByCard,
   }
 }
 
@@ -63,13 +73,14 @@ export const ProjectService = {
     filters: CardFilters | null,
     persistedAssignments: PersistedAssignment[],
     persistedErrors: PersistedError[],
+    sellersByCard: Map<string, Seller[]>,
   ): Promise<boolean> {
     const deckFileName = CardService.GetDeckFileName()
     const defaultName = deckFileName
       ? deckFileName.replace(/\.csv$/i, '') + '.dcproject.json'
       : 'project.dcproject.json'
 
-    const data = buildProjectData(selectedCards, filters, persistedAssignments, persistedErrors)
+    const data = buildProjectData(selectedCards, filters, persistedAssignments, persistedErrors, sellersByCard)
 
     if (supportsFileSystemAccess()) {
       try {
@@ -105,11 +116,12 @@ export const ProjectService = {
     filters: CardFilters | null,
     persistedAssignments: PersistedAssignment[],
     persistedErrors: PersistedError[],
+    sellersByCard: Map<string, Seller[]>,
   ): Promise<boolean> {
     const handle = getProjectFileHandle()
     if (!handle) return false
 
-    const data = buildProjectData(selectedCards, filters, persistedAssignments, persistedErrors)
+    const data = buildProjectData(selectedCards, filters, persistedAssignments, persistedErrors, sellersByCard)
 
     try {
       await writeToHandle(handle, data)
@@ -213,12 +225,13 @@ export const ProjectService = {
       saveSelectedCards(allCards)
     }
 
-    // Persist assignments/errors so SearchCardsPage restores them
-    if (project.assignments?.length || project.errors?.length) {
+    // Persist assignments/errors/sellersByCard so SearchCardsPage restores them
+    if (project.assignments?.length || project.errors?.length || project.sellersByCard?.length) {
       await StorageService.saveSearchResults({
         deckFileName: project.deckFileName,
         assignments: project.assignments ?? [],
         errors: project.errors ?? [],
+        sellersByCard: project.sellersByCard ?? [],
       })
     }
 

@@ -67,10 +67,17 @@ export interface PersistedError {
   errorMessage: string
 }
 
+export interface PersistedSellersByCard {
+  cardName: string
+  editionName: string
+  sellers: Seller[]
+}
+
 export interface PersistedSearchResults {
   deckFileName: string
   assignments: PersistedAssignment[]
   errors: PersistedError[]
+  sellersByCard?: PersistedSellersByCard[]
 }
 
 export interface ProjectFile {
@@ -81,4 +88,5 @@ export interface ProjectFile {
   filters: CardFilters | null
   assignments: PersistedAssignment[]
   errors: PersistedError[]
+  sellersByCard?: PersistedSellersByCard[]
 }
