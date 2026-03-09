@@ -136,7 +136,9 @@ function normalizeDecimalString(number: string): string {
 
 function parsePriceCurrency(raw: string): [number, string] {
   const cleaned = raw.replace(/\u00a0/g, ' ').replace(/\u202f/g, ' ').trim()
-  if (!cleaned) throw new Error('empty price string')
+  if (!cleaned) {
+    throw new Error('Empty price string')
+  }
 
   let numeric = ''
   let currency = ''
@@ -149,7 +151,9 @@ function parsePriceCurrency(raw: string): [number, string] {
     }
   }
 
-  if (!numeric) throw new Error(`price value not found in "${raw}"`)
+  if (!numeric) {
+    throw new Error(`price value not found in "${raw}"`)
+  }
 
   const normalized = normalizeDecimalString(numeric)
   const value = parseFloat(normalized)
@@ -163,6 +167,10 @@ function parsePriceCurrency(raw: string): [number, string] {
     }
   }
 
+  if (!value) {
+    console.warn(`>>> Invalid card price resolved ${value} from text ${raw}; cleaned: ${cleaned}`)
+  }
+
   return [value, currency]
 }
 
@@ -171,9 +179,13 @@ function extractPriceAndCurrency(row: Element): [number, string] {
   if (!priceEl) {
     priceEl = row.querySelector('.mobile-offer-container .color-primary')
   }
-  if (!priceEl) throw new Error('price not found')
+  if (!priceEl) {
+    throw new Error('Price element not found')
+  }
   const priceText = (priceEl.textContent || '').trim()
-  if (!priceText) throw new Error('price not found')
+  if (!priceText) {
+    throw new Error('Price text not found')
+  }
   return parsePriceCurrency(priceText)
 }
 
@@ -203,8 +215,8 @@ export function ParseSellerListings(body: string): Seller[] {
       const [price, currency] = extractPriceAndCurrency(row)
       listing.Price = price
       listing.Currency = currency
-    } catch {
-      // Unable to parse price for this seller row
+    } catch (error) {
+      console.error(">>> Unable to parse price for this seller row: ", row, "\nError: ", error)
     }
 
     if (!listing.SellerName && listing.Price === 0 && listing.CardsAmmount === 0) {
