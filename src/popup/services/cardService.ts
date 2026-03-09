@@ -51,7 +51,10 @@ function parseCSV(text: string): Card[] {
 
 async function loadFromCSV(csvContent: string, fileName: string): Promise<boolean> {
   const cards = parseCSV(csvContent)
-  if (cards.length === 0) return false
+  if (cards.length === 0) {
+    console.warn('[CardService] No cards parsed from CSV:', fileName)
+    return false
+  }
   storedCards = cards
   currentDeckFileName = fileName
   currentCsvContent = csvContent
@@ -72,13 +75,15 @@ export const CardService = {
       input.addEventListener('change', async () => {
         const file = input.files?.[0]
         if (!file) {
+          console.warn('[CardService] No file selected')
           resolve(false)
           return
         }
         try {
           const text = await file.text()
           resolve(await loadFromCSV(text, file.name))
-        } catch {
+        } catch (err) {
+          console.error('[CardService] Failed to read CSV file:', err)
           resolve(false)
         }
       })
@@ -91,7 +96,8 @@ export const CardService = {
   async LoadFromRecent(csvContent: string, fileName: string): Promise<boolean> {
     try {
       return await loadFromCSV(csvContent, fileName)
-    } catch {
+    } catch (err) {
+      console.error('[CardService] Failed to load from recent deck:', fileName, err)
       return false
     }
   },

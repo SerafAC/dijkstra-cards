@@ -85,6 +85,7 @@ export async function FindOptimalSellers(
   offersMap: Map<string, Seller[]>,
 ): Promise<Record<string, Seller>> {
   if (cards.length === 0) {
+    console.error('[SellerAssignmentService] FindOptimalSellers: no cards provided for assignment')
     throw new Error('no cards provided for assignment')
   }
 
