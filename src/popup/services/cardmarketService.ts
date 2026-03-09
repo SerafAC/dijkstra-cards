@@ -191,6 +191,7 @@ function extractPriceAndCurrency(row: Element): [number, string] {
 
 export function ParseSellerListings(body: string): Seller[] {
   if (!body.trim()) {
+    console.error('[CardmarketService] ParseSellerListings: received empty body')
     throw new Error('empty cardmarket body')
   }
 
@@ -257,6 +258,7 @@ export function setSearchIntervalMs(ms: number): void {
 
 async function queryCardPage(query: CardQuery): Promise<{ html: string; url: string }> {
   if (!query.Card.CardName.trim()) {
+    console.error('[CardmarketService] queryCardPage: card name is required but was empty')
     throw new Error('card name is required')
   }
 
@@ -286,6 +288,7 @@ export async function GetCardSellers(query: CardQuery): Promise<Seller[]> {
   const sellers = ParseSellerListings(body)
 
   if (sellers.length === 0) {
+    console.error('[CardmarketService] GetCardSellers: no sellers found for card:', query.Card.CardName)
     throw new Error('Sellers not found: Empty list')
   }
 

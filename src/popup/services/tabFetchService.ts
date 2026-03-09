@@ -7,7 +7,9 @@ function createTab(url: string, focus = false): Promise<number> {
   return new Promise((resolve, reject) => {
     chrome.tabs.create({ url, active: false }, (tab) => {
       if (chrome.runtime.lastError || tab.id == null) {
-        reject(new Error(chrome.runtime.lastError?.message ?? 'Failed to open tab'))
+        const msg = chrome.runtime.lastError?.message ?? 'Failed to open tab'
+        console.error('[TabFetchService] createTab failed:', msg)
+        reject(new Error(msg))
         return
       }
       if (focus) {
@@ -22,6 +24,7 @@ function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(onUpdated)
+      console.error(`[TabFetchService] waitForTabLoad timed out after ${INITIAL_LOAD_TIMEOUT_MS}ms for tab`, tabId)
       reject(new Error(`Tab did not finish loading within ${INITIAL_LOAD_TIMEOUT_MS}ms`))
     }, INITIAL_LOAD_TIMEOUT_MS)
 
@@ -46,6 +49,7 @@ function navigateTab(tabId: number, url: string): Promise<void> {
       },
       () => {
         if (chrome.runtime.lastError) {
+          console.error('[TabFetchService] navigateTab failed:', chrome.runtime.lastError.message)
           reject(new Error(chrome.runtime.lastError.message))
           return
         }
@@ -61,6 +65,7 @@ function executeScript<T>(tabId: number, func: (...args: never[]) => T, args?: u
       { target: { tabId }, func, args: args ?? [] },
       (results) => {
         if (chrome.runtime.lastError) {
+          console.error('[TabFetchService] executeScript failed:', chrome.runtime.lastError.message)
           reject(new Error(chrome.runtime.lastError.message))
           return
         }
@@ -156,11 +161,13 @@ function readTabHtml(tabId: number): Promise<string> {
       { target: { tabId }, func: () => document.documentElement.outerHTML },
       (results) => {
         if (chrome.runtime.lastError) {
+          console.error('[TabFetchService] readTabHtml failed:', chrome.runtime.lastError.message)
           reject(new Error(chrome.runtime.lastError.message))
           return
         }
         const html = results?.[0]?.result
         if (typeof html !== 'string') {
+          console.error('[TabFetchService] readTabHtml: unexpected result type:', typeof html)
           reject(new Error('Failed to extract HTML from tab'))
           return
         }
@@ -194,6 +201,7 @@ async function pollUntilPredicate(
     await sleep(POLL_INTERVAL_MS)
   }
 
+  console.error(`[TabFetchService] pollUntilPredicate timed out after ${POLL_TIMEOUT_MS / 60_000} minutes for tab`, tabId)
   throw new Error(`Predicate not satisfied after ${POLL_TIMEOUT_MS / 60_000} minutes`)
 }
 
@@ -263,6 +271,7 @@ export async function searchCardViaTab(
 
   const submitted = await submitSearch(tabId, cardName)
   if (!submitted) {
+    console.error('[TabFetchService] Search bar #ProductSearchInput not found on the page for card:', cardName)
     throw new Error('Search bar #ProductSearchInput not found on the page')
   }
 
@@ -281,6 +290,7 @@ export async function searchCardViaTab(
   // Not a card page – try to find the right edition
   const matched = await clickEditionMatch(tabId, editionName)
   if (!matched) {
+    console.error(`[TabFetchService] Could not find edition "${editionName}" for card "${cardName}"`)
     throw new Error(`Search error: could not find edition "${editionName}" for card "${cardName}"`)
   }
 

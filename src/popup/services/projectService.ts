@@ -97,7 +97,11 @@ export const ProjectService = {
         setProjectFileHandle(handle)
         return true
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === 'AbortError') return false
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('[ProjectService] Save cancelled by user')
+          return false
+        }
+        console.error('[ProjectService] Failed to save project file:', err)
         throw err
       }
     } else {
@@ -126,7 +130,8 @@ export const ProjectService = {
     try {
       await writeToHandle(handle, data)
       return true
-    } catch {
+    } catch (err) {
+      console.error('[ProjectService] Auto-save failed:', err)
       return false
     }
   },
@@ -157,7 +162,11 @@ export const ProjectService = {
         }
         return success
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === 'AbortError') return false
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('[ProjectService] Open cancelled by user')
+          return false
+        }
+        console.error('[ProjectService] Failed to open project file:', err)
         throw err
       }
     } else {
@@ -177,6 +186,7 @@ export const ProjectService = {
       input.addEventListener('change', async () => {
         const file = input.files?.[0]
         if (!file) {
+          console.warn('[ProjectService] No file selected')
           resolve(false)
           return
         }
@@ -189,7 +199,8 @@ export const ProjectService = {
             await StorageService.addRecentProject(file.name, text, project.selectedCards?.length ?? 0)
           }
           resolve(success)
-        } catch {
+        } catch (err) {
+          console.error('[ProjectService] Failed to read or parse project file:', err)
           resolve(false)
         }
       })
@@ -203,11 +214,17 @@ export const ProjectService = {
    * Restore state from a parsed project file.
    */
   async restoreProject(project: ProjectFile): Promise<boolean> {
-    if (!project.version || !project.csvContent) return false
+    if (!project.version || !project.csvContent) {
+      console.error('[ProjectService] Invalid project file: missing version or CSV content')
+      return false
+    }
 
     // Load deck from CSV content
     const loaded = await CardService.LoadFromRecent(project.csvContent, project.deckFileName)
-    if (!loaded) return false
+    if (!loaded) {
+      console.error('[ProjectService] Failed to load deck from project CSV:', project.deckFileName)
+      return false
+    }
 
     // Restore selected cards
     const allCards = await CardService.GetCards()
