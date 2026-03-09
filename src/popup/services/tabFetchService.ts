@@ -103,7 +103,7 @@ interface TabCardFilters {
   sellerCountry?: number[]
 }
 
-async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise<void> {
+async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise<string> {
   const urlStr = await executeScript(tabId, () => window.location.href)
   const url = new URL(urlStr)
   if (filters?.language) {
@@ -117,7 +117,9 @@ async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise
       url.searchParams.append(`sellerCountry[${countryId}]`, countryId.toString())
     }
   }
-  navigateTab(tabId, url.toString());
+  const filteredUrl = url.toString()
+  navigateTab(tabId, filteredUrl)
+  return filteredUrl
 }
 
 function clickEditionMatch(tabId: number, editionName: string): Promise<boolean> {
@@ -306,16 +308,17 @@ async function applyFiltersAndRead(
   filters?: TabCardFilters,
   predicate?: (html: string) => boolean,
 ): Promise<{ html: string; url: string }> {
-  const url = await readTabUrl(tabId)
-
   const hasFilters = filters &&
     ((filters.language && filters.language.length > 0) ||
       filters.minCondition != null ||
       (filters.sellerCountry && filters.sellerCountry.length > 0))
 
+  let url: string
   if (hasFilters) {
-    await applyCardFilters(tabId, filters)
+    url = await applyCardFilters(tabId, filters)
     await waitForTabLoad(tabId)
+  } else {
+    url = await readTabUrl(tabId)
   }
 
   const html = await readTabHtml(tabId)

@@ -326,23 +326,6 @@ function searchCardByNameUrl(cardName: string) {
   return `https://www.cardmarket.com/en/Magic/Products/Search?category=-1&searchString=${uriCardName}&searchMode=v2`
 }
 
-function cardLinkWithFilters(baseUrl: string): string {
-  if (!baseUrl) return baseUrl
-  const url = new URL(baseUrl)
-  if (selectedLanguages.value.length > 0) {
-    url.searchParams.set('language', selectedLanguages.value.join(','))
-  }
-  if (selectedMinCondition.value) {
-    url.searchParams.set('minCondition', selectedMinCondition.value.toString())
-  }
-  if (selectedSellerCountries.value.length > 0) {
-    for (const countryId of selectedSellerCountries.value) {
-      url.searchParams.append(`sellerCountry[${countryId}]`, countryId.toString())
-    }
-  }
-  return url.toString()
-}
-
 function goBack() {
   router.push('/deck')
 }
@@ -646,7 +629,7 @@ async function retrySearch(cardId: string) {
                     severity="secondary"
                     :disabled="!slotProps.data.link"
                     v-tooltip="slotProps.data.link"
-                    @click="Browser.OpenURL(cardLinkWithFilters(slotProps.data.link))"
+                    @click="Browser.OpenURL(slotProps.data.link)"
                   />
                   <Button
                     icon="pi pi-search"
@@ -714,7 +697,7 @@ async function retrySearch(cardId: string) {
                 aria-label="Market Link"
                 v-tooltip="slotProps.data.link"
                 severity="secondary"
-                @click="Browser.OpenURL(cardLinkWithFilters(slotProps.data.link))"
+                @click="Browser.OpenURL(slotProps.data.link)"
               />
             </template>
           </Column>
