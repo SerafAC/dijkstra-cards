@@ -605,9 +605,9 @@ async function retrySearch(cardId: string) {
         </p>
 
         <div v-if="hasFailedCards && !failedSectionCollapsed" class="failed-table">
-          <DataTable size="small" :value="failedCards">
-            <Column field="cardName" header="Card name" />
-            <Column field="setName" header="Edition" />
+          <DataTable size="small" :value="failedCards" sortField="cardName" :sortOrder="1">
+            <Column field="cardName" header="Card name" sortable />
+            <Column field="setName" header="Edition" sortable />
             <Column header="Error">
               <template #body="slotProps">
                 <span
@@ -664,10 +664,10 @@ async function retrySearch(cardId: string) {
 
       <h3>Assignments</h3>
       <div class="results-table">
-        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows">
-          <Column field="cardName" header="Card name" />
-          <Column field="setName" header="Edition" />
-          <Column field="sellerName" header="Selected seller">
+        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows" sortField="cardName" :sortOrder="1">
+          <Column field="cardName" header="Card name" sortable />
+          <Column field="setName" header="Edition" sortable />
+          <Column field="sellerName" header="Selected seller" sortable>
             <template #body="slotProps">
               <span>
                 <span
@@ -678,8 +678,8 @@ async function retrySearch(cardId: string) {
               </span>
             </template>
           </Column>
-          <Column field="price" header="Price" />
-          <Column field="lastUpdated" header="Last Updated">
+          <Column field="price" header="Price" sortable />
+          <Column field="lastUpdated" header="Last Updated" sortable>
             <template #body="slotProps">
               <span
                 v-if="slotProps.data.lastUpdated"

@@ -78,12 +78,14 @@ onBeforeUnmount(() => {
         scrollHeight="flex"
         v-model:selection="selectedCards"
         selectionMode="multiple"
+        sortField="CardName"
+        :sortOrder="1"
       >
         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-        <Column field="Quantity" header="Quantity" />
-        <Column field="CardName" header="Card Name" />
-        <Column field="EditionName" header="Edition Name" />
-        <Column field="LastUpdated" header="Last Updated">
+        <Column field="Quantity" header="Quantity" sortable />
+        <Column field="CardName" header="Card Name" sortable />
+        <Column field="EditionName" header="Edition Name" sortable />
+        <Column field="LastUpdated" header="Last Updated" sortable>
           <template #body="slotProps">
             <span
               v-if="slotProps.data.LastUpdated"
