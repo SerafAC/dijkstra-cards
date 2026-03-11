@@ -26,6 +26,7 @@ const assignments: Ref<Record<string, Seller>> = ref({})
 const cardFetchErrors: Ref<SellerFetchStatus[]> = ref([])
 const isSearching = ref(false)
 const retryingCardId = ref<string | null>(null)
+const reloadingCardId = ref<string | null>(null)
 const searchAttempted = ref(false)
 const fetchProgress = ref(0)
 const fetchTotal = ref(0)
@@ -283,6 +284,7 @@ const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
     const card = selectedCards.value.find((card) => card.Id === entry[0])
     return {
+      id: card?.Id,
       cardName: card?.CardName || 'Unknown card',
       setName: card?.EditionName || 'Unknown edition',
       sellerName: entry[1]?.SellerName ?? 'No seller found',
@@ -320,6 +322,16 @@ const failedCards = computed(() =>
 
 const hasFailedCards = computed(() => failedCards.value.length > 0)
 const failedSectionCollapsed = ref(true)
+
+const pendingCards = computed(() => {
+  const assignedIds = new Set(Object.keys(assignments.value))
+  const errorIds = new Set(cardFetchErrors.value.map((e) => e.cardId))
+  return selectedCards.value
+    .filter((card) => !assignedIds.has(card.Id) && !errorIds.has(card.Id))
+    .map((card) => ({ id: card.Id, cardName: card.CardName, setName: card.EditionName }))
+})
+
+const hasPendingCards = computed(() => pendingCards.value.length > 0)
 
 function searchCardByNameUrl(cardName: string) {
   const uriCardName = encodeURIComponent(cardName.toLowerCase())
@@ -421,6 +433,38 @@ async function assignSellers() {
     isSearching.value = false
     currentCardName.value = ''
   }
+}
+
+async function reloadCardSellers(cardId: string) {
+  const card = selectedCards.value.find((c) => c.Id === cardId)
+  if (!card) return
+
+  reloadingCardId.value = cardId
+  sellersByCard.delete(cardId)
+
+  try {
+    const sellers = await GetCardSellers(buildQueryFromRow(card))
+    sellersByCard.set(cardId, sellers)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    cardFetchErrors.value = [
+      ...cardFetchErrors.value.filter((e) => e.cardId !== cardId),
+      { cardId, hadError: true, errorMessage: msg, sellersFound: false, fetchAttempted: true },
+    ]
+    console.error('Reload sellers failed for card', card.CardName, err)
+  } finally {
+    closeBrowsingSession()
+  }
+
+  const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
+  assignments.value = newAssignments
+
+  const now = new Date().toISOString()
+  const reloaded = selectedCards.value.find((c) => c.Id === cardId)
+  if (reloaded && newAssignments[cardId]) reloaded.LastUpdated = now
+
+  await persistResults()
+  reloadingCardId.value = null
 }
 
 async function retrySearch(cardId: string) {
@@ -605,9 +649,9 @@ async function retrySearch(cardId: string) {
         </p>
 
         <div v-if="hasFailedCards && !failedSectionCollapsed" class="failed-table">
-          <DataTable size="small" :value="failedCards">
-            <Column field="cardName" header="Card name" />
-            <Column field="setName" header="Edition" />
+          <DataTable size="small" :value="failedCards" sortField="cardName" :sortOrder="1">
+            <Column field="cardName" header="Card name" sortable />
+            <Column field="setName" header="Edition" sortable />
             <Column header="Error">
               <template #body="slotProps">
                 <span
@@ -657,6 +701,20 @@ async function retrySearch(cardId: string) {
         </div>
       </div>
 
+      <div v-if="hasPendingCards" class="pending-section">
+        <div class="pending-section__header">
+          <i class="pi pi-clock"></i>
+          <span>Pending cards</span>
+          <span class="pending-section__count">
+            {{ pendingCards.length }} {{ pendingCards.length === 1 ? 'card' : 'cards' }}
+          </span>
+        </div>
+        <DataTable size="small" :value="pendingCards" sortField="cardName" :sortOrder="1">
+          <Column field="cardName" header="Card name" sortable />
+          <Column field="setName" header="Edition" sortable />
+        </DataTable>
+      </div>
+
       <div v-if="hasAssignments" class="summary-card">
         <h3>Cards number: {{ selectedCards.length - failedCards.length }}</h3>
         <h3>Total price: {{ totalPrice.toFixed(2) }}</h3>
@@ -664,10 +722,10 @@ async function retrySearch(cardId: string) {
 
       <h3>Assignments</h3>
       <div class="results-table">
-        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows">
-          <Column field="cardName" header="Card name" />
-          <Column field="setName" header="Edition" />
-          <Column field="sellerName" header="Selected seller">
+        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows" sortField="cardName" :sortOrder="1">
+          <Column field="cardName" header="Card name" sortable />
+          <Column field="setName" header="Edition" sortable />
+          <Column field="sellerName" header="Selected seller" sortable>
             <template #body="slotProps">
               <span>
                 <span
@@ -678,8 +736,8 @@ async function retrySearch(cardId: string) {
               </span>
             </template>
           </Column>
-          <Column field="price" header="Price" />
-          <Column field="lastUpdated" header="Last Updated">
+          <Column field="price" header="Price" sortable />
+          <Column field="lastUpdated" header="Last Updated" sortable>
             <template #body="slotProps">
               <span
                 v-if="slotProps.data.lastUpdated"
@@ -690,15 +748,28 @@ async function retrySearch(cardId: string) {
               <span v-else>-</span>
             </template>
           </Column>
-          <Column field="link" header="Actions">
+          <Column header="Actions">
             <template #body="slotProps">
-              <Button
-                icon="pi pi-external-link"
-                aria-label="Market Link"
-                v-tooltip="slotProps.data.link"
-                severity="secondary"
-                @click="Browser.OpenURL(slotProps.data.link)"
-              />
+              <div class="assignment-actions">
+                <Button
+                  icon="pi pi-external-link"
+                  aria-label="Market Link"
+                  v-tooltip="slotProps.data.link"
+                  severity="secondary"
+                  @click="Browser.OpenURL(slotProps.data.link)"
+                />
+                <Button
+                  icon="pi pi-refresh"
+                  aria-label="Reload sellers"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  v-tooltip="'Reload sellers for this card'"
+                  :disabled="isSearching || reloadingCardId !== null || retryingCardId !== null"
+                  :loading="reloadingCardId === slotProps.data.id"
+                  @click="reloadCardSellers(slotProps.data.id)"
+                />
+              </div>
             </template>
           </Column>
         </DataTable>
@@ -852,7 +923,33 @@ async function retrySearch(cardId: string) {
   overflow: hidden;
 }
 
-.failed-actions {
+.pending-section {
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+    background: var(--surface-ground);
+
+    i {
+      color: var(--text-color-secondary);
+    }
+  }
+
+  &__count {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-color-secondary);
+  }
+}
+
+.failed-actions,
+.assignment-actions {
   display: flex;
   align-items: center;
   gap: 0.25rem;
