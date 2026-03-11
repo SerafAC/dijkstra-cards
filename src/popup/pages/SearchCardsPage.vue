@@ -25,6 +25,7 @@ const hasCards = computed(() => selectedCards.value.length > 0)
 const assignments: Ref<Record<string, Seller>> = ref({})
 const cardFetchErrors: Ref<SellerFetchStatus[]> = ref([])
 const isSearching = ref(false)
+const stopRequested = ref(false)
 const retryingCardId = ref<string | null>(null)
 const reloadingCardId = ref<string | null>(null)
 const searchAttempted = ref(false)
@@ -362,8 +363,13 @@ function buildQueryFromRow(row: Card): CardQuery {
   }
 }
 
+function stopAssignment() {
+  stopRequested.value = true
+}
+
 async function assignSellers() {
   searchAttempted.value = true
+  stopRequested.value = false
 
   if (!hasCards.value) {
     assignments.value = {}
@@ -395,6 +401,8 @@ async function assignSellers() {
     const newErrors: SellerFetchStatus[] = []
 
     for (const query of queries) {
+      if (stopRequested.value) break
+
       currentCardName.value = query.Card.CardName
       fetchedIds.add(query.Card.Id)
 
@@ -589,7 +597,15 @@ async function retrySearch(cardId: string) {
           @click="assignSellers"
         />
         <Button
-          v-if="hasAssignments"
+          v-if="isSearching"
+          label="Stop"
+          icon="pi pi-stop-circle"
+          severity="danger"
+          :disabled="stopRequested"
+          @click="stopAssignment"
+        />
+        <Button
+          v-if="hasAssignments && !isSearching"
           label="Remove assignments"
           icon="pi pi-trash"
           severity="danger"
