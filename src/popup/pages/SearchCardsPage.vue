@@ -323,6 +323,16 @@ const failedCards = computed(() =>
 const hasFailedCards = computed(() => failedCards.value.length > 0)
 const failedSectionCollapsed = ref(true)
 
+const pendingCards = computed(() => {
+  const assignedIds = new Set(Object.keys(assignments.value))
+  const errorIds = new Set(cardFetchErrors.value.map((e) => e.cardId))
+  return selectedCards.value
+    .filter((card) => !assignedIds.has(card.Id) && !errorIds.has(card.Id))
+    .map((card) => ({ id: card.Id, cardName: card.CardName, setName: card.EditionName }))
+})
+
+const hasPendingCards = computed(() => pendingCards.value.length > 0)
+
 function searchCardByNameUrl(cardName: string) {
   const uriCardName = encodeURIComponent(cardName.toLowerCase())
   return `https://www.cardmarket.com/en/Magic/Products/Search?category=-1&searchString=${uriCardName}&searchMode=v2`
@@ -691,6 +701,20 @@ async function retrySearch(cardId: string) {
         </div>
       </div>
 
+      <div v-if="hasPendingCards" class="pending-section">
+        <div class="pending-section__header">
+          <i class="pi pi-clock"></i>
+          <span>Pending cards</span>
+          <span class="pending-section__count">
+            {{ pendingCards.length }} {{ pendingCards.length === 1 ? 'card' : 'cards' }}
+          </span>
+        </div>
+        <DataTable size="small" :value="pendingCards" sortField="cardName" :sortOrder="1">
+          <Column field="cardName" header="Card name" sortable />
+          <Column field="setName" header="Edition" sortable />
+        </DataTable>
+      </div>
+
       <div v-if="hasAssignments" class="summary-card">
         <h3>Cards number: {{ selectedCards.length - failedCards.length }}</h3>
         <h3>Total price: {{ totalPrice.toFixed(2) }}</h3>
@@ -897,6 +921,31 @@ async function retrySearch(cardId: string) {
   border: 1px solid var(--surface-border);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.pending-section {
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+    background: var(--surface-ground);
+
+    i {
+      color: var(--text-color-secondary);
+    }
+  }
+
+  &__count {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-color-secondary);
+  }
 }
 
 .failed-actions,
