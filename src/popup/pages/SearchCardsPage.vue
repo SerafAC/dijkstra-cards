@@ -196,7 +196,10 @@ async function restorePersistedResults() {
 
 async function persistResults() {
   const deckName = CardService.GetDeckFileName()
-  if (!deckName) return
+  if (!deckName) {
+    console.warn('>>> Cannot persist results, no deck name')
+    return
+  }
 
   const { assignments: persistedAssignments, errors: persistedErrors } = await buildPersistedData()
 

@@ -21,8 +21,15 @@ function storageGet<T>(key: string): Promise<T | undefined> {
 }
 
 function storageSet(data: Record<string, unknown>): Promise<void> {
-  return new Promise((resolve) => {
-    chrome.storage.local.set(data, resolve)
+  const plain = JSON.parse(JSON.stringify(data))
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set(plain, () => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(String(chrome.runtime.lastError)))
+      } else {
+        resolve()
+      }
+    })
   })
 }
 
