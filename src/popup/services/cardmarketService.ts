@@ -180,10 +180,12 @@ function extractPriceAndCurrency(row: Element): [number, string] {
     priceEl = row.querySelector('.mobile-offer-container .color-primary')
   }
   if (!priceEl) {
+    console.error('>>> Price not found for the element: ', priceEl)
     throw new Error('Price element not found')
   }
   const priceText = (priceEl.textContent || '').trim()
   if (!priceText) {
+    console.error(`>>> Price text not found on element ${priceEl.outerHTML}, text: ${priceText}`)
     throw new Error('Price text not found')
   }
   return parsePriceCurrency(priceText)
