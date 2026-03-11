@@ -717,20 +717,6 @@ async function retrySearch(cardId: string) {
         </div>
       </div>
 
-      <div v-if="hasPendingCards" class="pending-section">
-        <div class="pending-section__header">
-          <i class="pi pi-clock"></i>
-          <span>Pending cards</span>
-          <span class="pending-section__count">
-            {{ pendingCards.length }} {{ pendingCards.length === 1 ? 'card' : 'cards' }}
-          </span>
-        </div>
-        <DataTable size="small" :value="pendingCards" sortField="cardName" :sortOrder="1">
-          <Column field="cardName" header="Card name" sortable />
-          <Column field="setName" header="Edition" sortable />
-        </DataTable>
-      </div>
-
       <div v-if="hasAssignments" class="summary-card">
         <h3>Cards number: {{ selectedCards.length - failedCards.length }}</h3>
         <h3>Total price: {{ totalPrice.toFixed(2) }}</h3>
@@ -796,6 +782,20 @@ async function retrySearch(cardId: string) {
           <p v-else>Select cards from the deck and click "Assign sellers" to see the results.</p>
         </div>
       </div>
+    </div>
+
+    <div v-if="hasPendingCards" class="pending-section">
+      <div class="pending-section__header">
+        <i class="pi pi-clock"></i>
+        <span>Pending cards</span>
+        <span class="pending-section__count">
+          {{ pendingCards.length }} {{ pendingCards.length === 1 ? 'card' : 'cards' }}
+        </span>
+      </div>
+      <DataTable size="small" :value="pendingCards" sortField="cardName" :sortOrder="1">
+        <Column field="cardName" header="Card name" sortable />
+        <Column field="setName" header="Edition" sortable />
+      </DataTable>
     </div>
 
     <div v-else class="empty-state">
