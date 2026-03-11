@@ -217,7 +217,7 @@ export function ParseSellerListings(body: string): Seller[] {
       listing.Price = price
       listing.Currency = currency
     } catch (error) {
-      console.error(">>> Unable to parse price for this seller row: ", row, "\nError: ", error)
+      console.error(">>> Unable to parse price for this seller row: ", row.outerHTML, "\nError: ", error)
     }
 
     if (!listing.SellerName && listing.Price === 0 && listing.CardsAmmount === 0) {
