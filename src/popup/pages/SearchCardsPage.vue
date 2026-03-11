@@ -303,6 +303,8 @@ const assignmentRows = computed(() =>
 
 const hasAssignments = computed(() => assignmentRows.value.length > 0)
 const totalPrice = computed(() => assignmentRows.value.reduce((sum, row) => sum + row.price, 0))
+const assignedCardsCount = computed(() => assignmentRows.value.length)
+const uniqueSellersCount = computed(() => new Set(Object.values(assignments.value).map((s) => s.SellerName)).size)
 const fetchPercentage = computed(() =>
   fetchTotal.value > 0 ? Math.round((fetchProgress.value / fetchTotal.value) * 100) : 0,
 )
@@ -721,7 +723,9 @@ async function retrySearch(cardId: string) {
       </div>
 
       <div v-if="hasAssignments" class="summary-card">
-        <h3>Cards number: {{ selectedCards.length - failedCards.length }}</h3>
+        <h3>Cards in deck: {{ selectedCards.length }}</h3>
+        <h3>Assigned cards: {{ assignedCardsCount }}</h3>
+        <h3>Unique sellers: {{ uniqueSellersCount }}</h3>
         <h3>Total price: {{ totalPrice.toFixed(2) }}</h3>
       </div>
 
