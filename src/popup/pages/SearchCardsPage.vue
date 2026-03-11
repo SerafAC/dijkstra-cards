@@ -332,7 +332,7 @@ const pendingCards = computed(() => {
   const errorIds = new Set(cardFetchErrors.value.map((e) => e.cardId))
   return selectedCards.value
     .filter((card) => !assignedIds.has(card.Id) && !errorIds.has(card.Id))
-    .map((card) => ({ id: card.Id, cardName: card.CardName, setName: card.EditionName }))
+    .map((card) => ({ id: card.Id, cardName: card.CardName, setName: card.EditionName, link: card.Link || '' }))
 })
 
 const hasPendingCards = computed(() => pendingCards.value.length > 0)
@@ -468,7 +468,7 @@ async function reloadCardSellers(cardId: string) {
   }
 
   const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
-  assignments.value = newAssignments
+  assignments.value = { ...assignments.value, ...newAssignments }
 
   const now = new Date().toISOString()
   const reloaded = selectedCards.value.find((c) => c.Id === cardId)
@@ -502,7 +502,7 @@ async function retrySearch(cardId: string) {
 
   // Recalculate optimal sellers across all cards
   const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
-  assignments.value = newAssignments
+  assignments.value = { ...assignments.value, ...newAssignments }
 
   const now = new Date().toISOString()
   const retried = selectedCards.value.find((c) => c.Id === cardId)
@@ -798,6 +798,31 @@ async function retrySearch(cardId: string) {
       <DataTable size="small" :value="pendingCards" sortField="cardName" :sortOrder="1">
         <Column field="cardName" header="Card name" sortable />
         <Column field="setName" header="Edition" sortable />
+        <Column header="Actions">
+          <template #body="slotProps">
+            <div class="assignment-actions">
+              <Button
+                icon="pi pi-external-link"
+                aria-label="Market Link"
+                v-tooltip="slotProps.data.link"
+                severity="secondary"
+                :disabled="!slotProps.data.link"
+                @click="Browser.OpenURL(slotProps.data.link)"
+              />
+              <Button
+                icon="pi pi-refresh"
+                aria-label="Search sellers"
+                size="small"
+                severity="secondary"
+                outlined
+                v-tooltip="'Search sellers for this card'"
+                :disabled="isSearching || reloadingCardId !== null || retryingCardId !== null"
+                :loading="reloadingCardId === slotProps.data.id"
+                @click="reloadCardSellers(slotProps.data.id)"
+              />
+            </div>
+          </template>
+        </Column>
       </DataTable>
     </div>
 
