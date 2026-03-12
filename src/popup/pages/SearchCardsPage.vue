@@ -544,10 +544,10 @@ async function retrySearch(cardId: string) {
           <MultiSelect
             v-model="selectedLanguages"
             :options="languageOptions"
-            optionLabel="label"
-            optionValue="value"
+            option-label="label"
+            option-value="value"
             placeholder="Any language"
-            :maxSelectedLabels="3"
+            :max-selected-labels="3"
           />
         </div>
         <div class="filter-group">
@@ -555,10 +555,10 @@ async function retrySearch(cardId: string) {
           <Select
             v-model="selectedMinCondition"
             :options="conditionOptions"
-            optionLabel="label"
-            optionValue="value"
+            option-label="label"
+            option-value="value"
             placeholder="Any condition"
-            showClear
+            show-clear
           />
         </div>
         <div class="filter-group">
@@ -566,28 +566,28 @@ async function retrySearch(cardId: string) {
           <MultiSelect
             v-model="selectedSellerCountries"
             :options="sellerCountryOptions"
-            optionLabel="label"
-            optionValue="value"
+            option-label="label"
+            option-value="value"
             placeholder="Any country"
-            :maxSelectedLabels="2"
+            :max-selected-labels="2"
             filter
           />
         </div>
         <div class="filter-actions">
           <Button
+            v-tooltip="'Save filters as default'"
             icon="pi pi-save"
             size="small"
             severity="secondary"
             outlined
-            v-tooltip="'Save filters as default'"
             @click="saveFilters"
           />
           <Button
+            v-tooltip="'Clear saved filters'"
             icon="pi pi-eraser"
             size="small"
             severity="danger"
             outlined
-            v-tooltip="'Clear saved filters'"
             @click="clearSavedFilters"
           />
         </div>
@@ -670,7 +670,7 @@ async function retrySearch(cardId: string) {
         </p>
 
         <div v-if="hasFailedCards && !failedSectionCollapsed" class="failed-table">
-          <DataTable size="small" :value="failedCards" sortField="cardName" :sortOrder="1">
+          <DataTable size="small" :value="failedCards" sort-field="cardName" :sort-order="1">
             <Column field="cardName" header="Card name" sortable />
             <Column field="setName" header="Edition" sortable />
             <Column header="Error">
@@ -688,21 +688,21 @@ async function retrySearch(cardId: string) {
               <template #body="slotProps">
                 <div class="failed-actions">
                   <Button
+                    v-tooltip="slotProps.data.link"
                     icon="pi pi-external-link"
                     aria-label="Market Link"
                     size="small"
                     severity="secondary"
                     :disabled="!slotProps.data.link"
-                    v-tooltip="slotProps.data.link"
                     @click="Browser.OpenURL(slotProps.data.link)"
                   />
                   <Button
+                    v-tooltip="'Search market by a card name'"
                     icon="pi pi-search"
                     aria-label="Market Search Link"
                     size="small"
                     severity="secondary"
                     :disabled="!slotProps.data.link"
-                    v-tooltip="'Search market by a card name'"
                     @click="Browser.OpenURL(searchCardByNameUrl(slotProps.data.cardName))"
                   />
                   <Button
@@ -731,7 +731,7 @@ async function retrySearch(cardId: string) {
 
       <h3>Assignments</h3>
       <div class="results-table">
-        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows" sortField="cardName" :sortOrder="1">
+        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows" sort-field="cardName" :sort-order="1">
           <Column field="cardName" header="Card name" sortable />
           <Column field="setName" header="Edition" sortable />
           <Column field="sellerName" header="Selected seller" sortable>
@@ -761,19 +761,19 @@ async function retrySearch(cardId: string) {
             <template #body="slotProps">
               <div class="assignment-actions">
                 <Button
+                  v-tooltip="slotProps.data.link"
                   icon="pi pi-external-link"
                   aria-label="Market Link"
-                  v-tooltip="slotProps.data.link"
                   severity="secondary"
                   @click="Browser.OpenURL(slotProps.data.link)"
                 />
                 <Button
+                  v-tooltip="'Reload sellers for this card'"
                   icon="pi pi-refresh"
                   aria-label="Reload sellers"
                   size="small"
                   severity="secondary"
                   outlined
-                  v-tooltip="'Reload sellers for this card'"
                   :disabled="isSearching || reloadingCardId !== null || retryingCardId !== null"
                   :loading="reloadingCardId === slotProps.data.id"
                   @click="reloadCardSellers(slotProps.data.id)"
@@ -799,27 +799,27 @@ async function retrySearch(cardId: string) {
           {{ pendingCards.length }} {{ pendingCards.length === 1 ? 'card' : 'cards' }}
         </span>
       </div>
-      <DataTable size="small" :value="pendingCards" sortField="cardName" :sortOrder="1">
+      <DataTable size="small" :value="pendingCards" sort-field="cardName" :sort-order="1">
         <Column field="cardName" header="Card name" sortable />
         <Column field="setName" header="Edition" sortable />
         <Column header="Actions">
           <template #body="slotProps">
             <div class="assignment-actions">
               <Button
+                v-tooltip="slotProps.data.link"
                 icon="pi pi-external-link"
                 aria-label="Market Link"
-                v-tooltip="slotProps.data.link"
                 severity="secondary"
                 :disabled="!slotProps.data.link"
                 @click="Browser.OpenURL(slotProps.data.link)"
               />
               <Button
+                v-tooltip="'Search sellers for this card'"
                 icon="pi pi-refresh"
                 aria-label="Search sellers"
                 size="small"
                 severity="secondary"
                 outlined
-                v-tooltip="'Search sellers for this card'"
                 :disabled="isSearching || reloadingCardId !== null || retryingCardId !== null"
                 :loading="reloadingCardId === slotProps.data.id"
                 @click="reloadCardSellers(slotProps.data.id)"

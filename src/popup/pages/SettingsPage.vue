@@ -50,7 +50,7 @@ async function resetToDefaults() {
           :max="60"
           :step="1"
           suffix=" s"
-          showButtons
+          show-buttons
         />
       </div>
     </div>

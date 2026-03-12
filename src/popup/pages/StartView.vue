@@ -147,23 +147,23 @@ function formatDate(iso: string): string {
       </Message>
 
       <div v-if="!loading" class="card actions">
-        <Button label="Open Deck Export" icon="pi pi-upload" @click="onOpenDeck" :loading="loading" />
-        <Button label="Open Project" icon="pi pi-folder-open" severity="secondary" @click="onOpenProject" :loading="loading" />
+        <Button label="Open Deck Export" icon="pi pi-upload" :loading="loading" @click="onOpenDeck" />
+        <Button label="Open Project" icon="pi pi-folder-open" severity="secondary" :loading="loading" @click="onOpenProject" />
       </div>
 
-      <div class="status" v-if="loading">
-        <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
+      <div v-if="loading" class="status">
+        <ProgressSpinner style="width: 40px; height: 40px" stroke-width="4" />
         <span style="margin-left: 8px">Loading...</span>
       </div>
 
       <div v-if="!loading && recentItems.length" class="recent-decks">
         <h3 class="recent-title">Recent</h3>
-        <DataTable :value="recentItems" size="small" scrollable scrollHeight="flex">
+        <DataTable :value="recentItems" size="small" scrollable scroll-height="flex">
           <Column header="" style="width: 2rem; padding-right: 0">
             <template #body="{ data }">
               <i
-                :class="data.kind === 'project' ? 'pi pi-file' : 'pi pi-table'"
                 v-tooltip="data.kind === 'project' ? 'Project' : 'Deck'"
+                :class="data.kind === 'project' ? 'pi pi-file' : 'pi pi-table'"
                 class="type-icon"
               />
             </template>
@@ -177,20 +177,20 @@ function formatDate(iso: string): string {
             <template #body="{ data }">
               <div class="row-actions">
                 <Button
+                  v-tooltip="data.kind === 'project' ? 'Open project' : 'Open deck'"
                   icon="pi pi-folder-open"
                   size="small"
                   severity="secondary"
                   text
                   @click="onOpenItem(data)"
-                  v-tooltip="data.kind === 'project' ? 'Open project' : 'Open deck'"
                 />
                 <Button
+                  v-tooltip="'Remove from list'"
                   icon="pi pi-trash"
                   size="small"
                   severity="danger"
                   text
                   @click="onRemoveItem(data)"
-                  v-tooltip="'Remove from list'"
                 />
               </div>
             </template>

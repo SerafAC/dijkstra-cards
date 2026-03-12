@@ -69,19 +69,19 @@ onBeforeUnmount(() => {
       {{ errorMsg }}
     </Message>
 
-    <div class="card" v-if="cards.length">
+    <div v-if="cards.length" class="card">
       <DataTable
+        v-model:selection="selectedCards"
         class="table"
         :value="cards"
         size="small"
         scrollable
-        scrollHeight="flex"
-        v-model:selection="selectedCards"
-        selectionMode="multiple"
-        sortField="CardName"
-        :sortOrder="1"
+        scroll-height="flex"
+        selection-mode="multiple"
+        sort-field="CardName"
+        :sort-order="1"
       >
-        <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+        <Column selection-mode="multiple" header-style="width: 3rem"></Column>
         <Column field="Quantity" header="Quantity" sortable />
         <Column field="CardName" header="Card Name" sortable />
         <Column field="EditionName" header="Edition Name" sortable />
@@ -99,11 +99,11 @@ onBeforeUnmount(() => {
         <Column field="Link" header="Market Link">
           <template #body="slotProps">
             <Button
+              v-tooltip="slotProps.data.Link"
               icon="pi pi-external-link"
               severity="secondary"
               size="small"
               aria-label="Market Link"
-              v-tooltip="slotProps.data.Link"
               @click="Browser.OpenURL(slotProps.data.Link)"
             />
           </template>
