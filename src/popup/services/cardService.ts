@@ -7,7 +7,7 @@ function generateId(): string {
   return crypto.randomUUID()
 }
 
-function parseCSV(text: string): Card[] {
+export function parseCSV(text: string): Card[] {
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
 
