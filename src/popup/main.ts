@@ -6,7 +6,7 @@ import Aura from '@primevue/themes/aura'
 import 'primeicons/primeicons.css'
 import router from './router'
 import App from './App.vue'
-import * as Sentry from "@sentry/vue";
+import * as Sentry from '@sentry/vue'
 
 const myPreset = definePreset(Aura, {
   semantic: {
@@ -30,7 +30,7 @@ const app = createApp(App)
 
 Sentry.init({
   app,
-  dsn: "https://f0d0c6603253303b001eed3c65edb4bb@o4511013569560576.ingest.de.sentry.io/4511014171181136",
+  dsn: 'https://f0d0c6603253303b001eed3c65edb4bb@o4511013569560576.ingest.de.sentry.io/4511014171181136',
   // Adds request headers and IP for users, for more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/vue/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
@@ -39,9 +39,9 @@ Sentry.init({
     Sentry.replayIntegration(),
     Sentry.feedbackIntegration({
       // Additional SDK configuration goes in here, for example:
-      colorScheme: "system",
+      colorScheme: 'system',
     }),
-    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+    Sentry.consoleLoggingIntegration({ levels: ['log', 'warn', 'error'] }),
   ],
   // Enable logs to be sent to Sentry
   enableLogs: true,
@@ -52,14 +52,14 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,
   // Set `tracePropagationTargets` to control for which URLs trace propagation should be enabled
-  tracePropagationTargets: ["localhost"],
+  tracePropagationTargets: ['localhost'],
   // Capture Replay for 10% of all sessions,
   // plus for 100% of sessions with an error
   // Learn more at
   // https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
-});
+})
 
 app.use(router)
 app.use(PrimeVue, {

@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, Ref, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { clearSelectedCards, useSelectedCards, getStoredDeckFileName } from '../stores/selectedCards'
+import {
+  clearSelectedCards,
+  useSelectedCards,
+  getStoredDeckFileName,
+} from '../stores/selectedCards'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
 import { GetCardSellers, closeBrowsingSession } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
@@ -11,7 +15,15 @@ import { ProjectService } from '../services/projectService'
 import { useProjectStore } from '../stores/projectStore'
 import { sleep } from '../utils/async'
 import { lastUpdatedColor, formatDate } from '../utils/dateUtils'
-import type { Card, CardFilters, CardQuery, PersistedAssignment, PersistedError, Seller, SellerFetchStatus } from '../types/models'
+import type {
+  Card,
+  CardFilters,
+  CardQuery,
+  PersistedAssignment,
+  PersistedError,
+  Seller,
+  SellerFetchStatus,
+} from '../types/models'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -96,7 +108,7 @@ const sellerCountryOptions = [
 ]
 
 const COUNTRY_ID_TO_FLAG: Record<number, string> = Object.fromEntries(
-  sellerCountryOptions.map((c) => [c.value, c.label.split(' ')[0]]),
+  sellerCountryOptions.map((c) => [c.value, c.label.split(' ')[0]])
 )
 
 function getCountryFlag(countryId: number): string {
@@ -243,7 +255,7 @@ async function buildPersistedData(): Promise<{
 
 async function autoSaveProject(
   persistedAssignments: PersistedAssignment[],
-  persistedErrors: PersistedError[],
+  persistedErrors: PersistedError[]
 ) {
   if (!isProjectLoaded.value) return
 
@@ -258,7 +270,7 @@ async function autoSaveProject(
     filters,
     persistedAssignments,
     persistedErrors,
-    sellersByCard,
+    sellersByCard
   )
 }
 
@@ -283,7 +295,6 @@ async function removeAssignments() {
   await autoSaveProject([], [])
 }
 
-
 const assignmentRows = computed(() =>
   Object.entries(assignments.value).map((entry) => {
     const card = selectedCards.value.find((card) => card.Id === entry[0])
@@ -298,15 +309,17 @@ const assignmentRows = computed(() =>
       link: card?.Link || '',
       lastUpdated: card?.LastUpdated,
     }
-  }),
+  })
 )
 
 const hasAssignments = computed(() => assignmentRows.value.length > 0)
 const totalPrice = computed(() => assignmentRows.value.reduce((sum, row) => sum + row.price, 0))
 const assignedCardsCount = computed(() => assignmentRows.value.length)
-const uniqueSellersCount = computed(() => new Set(Object.values(assignments.value).map((s) => s.SellerName)).size)
+const uniqueSellersCount = computed(
+  () => new Set(Object.values(assignments.value).map((s) => s.SellerName)).size
+)
 const fetchPercentage = computed(() =>
-  fetchTotal.value > 0 ? Math.round((fetchProgress.value / fetchTotal.value) * 100) : 0,
+  fetchTotal.value > 0 ? Math.round((fetchProgress.value / fetchTotal.value) * 100) : 0
 )
 
 const failedCards = computed(() =>
@@ -323,7 +336,7 @@ const failedCards = computed(() =>
       sellersFound,
       errorMessage,
     }
-  }),
+  })
 )
 
 const hasFailedCards = computed(() => failedCards.value.length > 0)
@@ -334,7 +347,12 @@ const pendingCards = computed(() => {
   const errorIds = new Set(cardFetchErrors.value.map((e) => e.cardId))
   return selectedCards.value
     .filter((card) => !assignedIds.has(card.Id) && !errorIds.has(card.Id))
-    .map((card) => ({ id: card.Id, cardName: card.CardName, setName: card.EditionName, link: card.Link || '' }))
+    .map((card) => ({
+      id: card.Id,
+      cardName: card.CardName,
+      setName: card.EditionName,
+      link: card.Link || '',
+    }))
 })
 
 const hasPendingCards = computed(() => pendingCards.value.length > 0)
@@ -416,7 +434,13 @@ async function assignSellers() {
         sellersByCard.set(query.Card.Id, sellers)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        newErrors.push({ cardId: query.Card.Id, hadError: true, errorMessage: msg, sellersFound: false, fetchAttempted: true })
+        newErrors.push({
+          cardId: query.Card.Id,
+          hadError: true,
+          errorMessage: msg,
+          sellersFound: false,
+          fetchAttempted: true,
+        })
         console.error('Failed fetching sellers for card', query, err)
       } finally {
         fetchProgress.value += 1
@@ -731,7 +755,13 @@ async function retrySearch(cardId: string) {
 
       <h3>Assignments</h3>
       <div class="results-table">
-        <DataTable v-if="hasAssignments" size="small" :value="assignmentRows" sort-field="cardName" :sort-order="1">
+        <DataTable
+          v-if="hasAssignments"
+          size="small"
+          :value="assignmentRows"
+          sort-field="cardName"
+          :sort-order="1"
+        >
           <Column field="cardName" header="Card name" sortable />
           <Column field="setName" header="Edition" sortable />
           <Column field="sellerName" header="Selected seller" sortable>
@@ -741,7 +771,8 @@ async function retrySearch(cardId: string) {
                   v-if="slotProps.data.sellerCountryFlag"
                   :title="slotProps.data.sellerCountry"
                   class="seller-flag"
-                >{{ slotProps.data.sellerCountryFlag }}</span>{{ slotProps.data.sellerName }}
+                  >{{ slotProps.data.sellerCountryFlag }}</span
+                >{{ slotProps.data.sellerName }}
               </span>
             </template>
           </Column>

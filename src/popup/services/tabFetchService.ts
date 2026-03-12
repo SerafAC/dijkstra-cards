@@ -24,7 +24,10 @@ function waitForTabLoad(tabId: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(onUpdated)
-      console.error(`[TabFetchService] waitForTabLoad timed out after ${INITIAL_LOAD_TIMEOUT_MS}ms for tab`, tabId)
+      console.error(
+        `[TabFetchService] waitForTabLoad timed out after ${INITIAL_LOAD_TIMEOUT_MS}ms for tab`,
+        tabId
+      )
       reject(new Error(`Tab did not finish loading within ${INITIAL_LOAD_TIMEOUT_MS}ms`))
     }, INITIAL_LOAD_TIMEOUT_MS)
 
@@ -44,7 +47,9 @@ function navigateTab(tabId: number, url: string): Promise<void> {
     chrome.scripting.executeScript(
       {
         target: { tabId },
-        func: (targetUrl: string) => { location.href = targetUrl },
+        func: (targetUrl: string) => {
+          location.href = targetUrl
+        },
         args: [url],
       },
       () => {
@@ -54,41 +59,48 @@ function navigateTab(tabId: number, url: string): Promise<void> {
           return
         }
         resolve()
-      },
+      }
     )
   })
 }
 
-function executeScript<T>(tabId: number, func: (...args: never[]) => T, args?: unknown[]): Promise<T> {
+function executeScript<T>(
+  tabId: number,
+  func: (...args: never[]) => T,
+  args?: unknown[]
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    chrome.scripting.executeScript(
-      { target: { tabId }, func, args: args ?? [] },
-      (results) => {
-        if (chrome.runtime.lastError) {
-          console.error('[TabFetchService] executeScript failed:', chrome.runtime.lastError.message)
-          reject(new Error(chrome.runtime.lastError.message))
-          return
-        }
-        resolve(results?.[0]?.result as T)
-      },
-    )
+    chrome.scripting.executeScript({ target: { tabId }, func, args: args ?? [] }, (results) => {
+      if (chrome.runtime.lastError) {
+        console.error('[TabFetchService] executeScript failed:', chrome.runtime.lastError.message)
+        reject(new Error(chrome.runtime.lastError.message))
+        return
+      }
+      resolve(results?.[0]?.result as T)
+    })
   })
 }
 
 function submitSearch(tabId: number, cardName: string): Promise<boolean> {
-  return executeScript(tabId, (name: string) => {
-    const input = document.querySelector('#ProductSearchInput') as HTMLInputElement | null
-    if (!input) return false
-    input.value = name
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-    const form = input.closest('form')
-    if (form) {
-      form.submit()
-    } else {
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }))
-    }
-    return true
-  }, [cardName])
+  return executeScript(
+    tabId,
+    (name: string) => {
+      const input = document.querySelector('#ProductSearchInput') as HTMLInputElement | null
+      if (!input) return false
+      input.value = name
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      const form = input.closest('form')
+      if (form) {
+        form.submit()
+      } else {
+        input.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true })
+        )
+      }
+      return true
+    },
+    [cardName]
+  )
 }
 
 function checkIsCardPage(tabId: number): Promise<boolean> {
@@ -123,34 +135,38 @@ async function applyCardFilters(tabId: number, filters: TabCardFilters): Promise
 }
 
 function clickEditionMatch(tabId: number, editionName: string): Promise<boolean> {
-  return executeScript(tabId, (edition: string) => {
-    const spans = document.querySelectorAll('span.expansion-symbol')
-    if (spans.length === 0) return false
+  return executeScript(
+    tabId,
+    (edition: string) => {
+      const spans = document.querySelectorAll('span.expansion-symbol')
+      if (spans.length === 0) return false
 
-    const editionWords = edition.toLowerCase().split(/\s+/).filter(Boolean)
-    if (editionWords.length === 0) return false
+      const editionWords = edition.toLowerCase().split(/\s+/).filter(Boolean)
+      if (editionWords.length === 0) return false
 
-    let bestSpan: Element | null = null
-    let bestCount = 0
+      let bestSpan: Element | null = null
+      let bestCount = 0
 
-    spans.forEach((span) => {
-      const label = (span.getAttribute('aria-label') || '').toLowerCase()
-      let matchCount = 0
-      for (const word of editionWords) {
-        if (label.includes(word)) matchCount++
-      }
-      if (matchCount > bestCount) {
-        bestCount = matchCount
-        bestSpan = span
-      }
-    })
+      spans.forEach((span) => {
+        const label = (span.getAttribute('aria-label') || '').toLowerCase()
+        let matchCount = 0
+        for (const word of editionWords) {
+          if (label.includes(word)) matchCount++
+        }
+        if (matchCount > bestCount) {
+          bestCount = matchCount
+          bestSpan = span
+        }
+      })
 
-    if (!bestSpan || bestCount === 0) return false
+      if (!bestSpan || bestCount === 0) return false
 
-    const link = (bestSpan as Element).closest('a') || bestSpan
-    ;(link as HTMLElement).click()
-    return true
-  }, [editionName])
+      const link = (bestSpan as Element).closest('a') || bestSpan
+      ;(link as HTMLElement).click()
+      return true
+    },
+    [editionName]
+  )
 }
 
 function readTabUrl(tabId: number): Promise<string> {
@@ -174,7 +190,7 @@ function readTabHtml(tabId: number): Promise<string> {
           return
         }
         resolve(html)
-      },
+      }
     )
   })
 }
@@ -185,7 +201,7 @@ function sleep(ms: number): Promise<void> {
 
 async function pollUntilPredicate(
   tabId: number,
-  predicate: (html: string) => boolean,
+  predicate: (html: string) => boolean
 ): Promise<string> {
   const deadline = Date.now() + POLL_TIMEOUT_MS
   let retryCount = 0
@@ -203,7 +219,10 @@ async function pollUntilPredicate(
     await sleep(POLL_INTERVAL_MS)
   }
 
-  console.error(`[TabFetchService] pollUntilPredicate timed out after ${POLL_TIMEOUT_MS / 60_000} minutes for tab`, tabId)
+  console.error(
+    `[TabFetchService] pollUntilPredicate timed out after ${POLL_TIMEOUT_MS / 60_000} minutes for tab`,
+    tabId
+  )
   throw new Error(`Predicate not satisfied after ${POLL_TIMEOUT_MS / 60_000} minutes`)
 }
 
@@ -236,7 +255,7 @@ export function closeBrowsingTab(tabId: number): void {
 export async function fetchViaTab(
   tabId: number,
   url: string,
-  predicate?: (html: string) => boolean,
+  predicate?: (html: string) => boolean
 ): Promise<string> {
   await navigateTab(tabId, url)
   await waitForTabLoad(tabId)
@@ -266,14 +285,16 @@ export async function searchCardViaTab(
   cardName: string,
   editionName: string,
   filters?: TabCardFilters,
-  predicate?: (html: string) => boolean,
+  predicate?: (html: string) => boolean
 ): Promise<{ html: string; url: string }> {
-
   if (predicate) await pollUntilPredicate(tabId, predicate)
 
   const submitted = await submitSearch(tabId, cardName)
   if (!submitted) {
-    console.error('[TabFetchService] Search bar #ProductSearchInput not found on the page for card:', cardName)
+    console.error(
+      '[TabFetchService] Search bar #ProductSearchInput not found on the page for card:',
+      cardName
+    )
     throw new Error('Search bar #ProductSearchInput not found on the page')
   }
 
@@ -292,7 +313,9 @@ export async function searchCardViaTab(
   // Not a card page – try to find the right edition
   const matched = await clickEditionMatch(tabId, editionName)
   if (!matched) {
-    console.error(`[TabFetchService] Could not find edition "${editionName}" for card "${cardName}"`)
+    console.error(
+      `[TabFetchService] Could not find edition "${editionName}" for card "${cardName}"`
+    )
     throw new Error(`Search error: could not find edition "${editionName}" for card "${cardName}"`)
   }
 
@@ -306,9 +329,10 @@ export async function searchCardViaTab(
 async function applyFiltersAndRead(
   tabId: number,
   filters?: TabCardFilters,
-  predicate?: (html: string) => boolean,
+  predicate?: (html: string) => boolean
 ): Promise<{ html: string; url: string }> {
-  const hasFilters = filters &&
+  const hasFilters =
+    filters &&
     ((filters.language && filters.language.length > 0) ||
       filters.minCondition != null ||
       (filters.sellerCountry && filters.sellerCountry.length > 0))

@@ -8,7 +8,11 @@ const defaultRootURL = 'https://www.cardmarket.com/en/Magic'
 // --- URL building ---
 
 function encodeParam(param: string): string {
-  return param.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-')
+  return param
+    .toLowerCase()
+    .replace(/ /g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/--+/g, '-')
 }
 
 export function BuildCardPageURL(card: Card): string {
@@ -20,41 +24,41 @@ export function BuildCardPageURL(card: Card): string {
 // --- HTML parsing (ported from Go goquery-based implementation) ---
 
 const COUNTRY_NAME_TO_ID: Record<string, number> = {
-  'Austria': 1,
-  'Belgium': 2,
-  'Bulgaria': 3,
-  'Switzerland': 4,
-  'Cyprus': 5,
+  Austria: 1,
+  Belgium: 2,
+  Bulgaria: 3,
+  Switzerland: 4,
+  Cyprus: 5,
   'Czech Republic': 6,
-  'Germany': 7,
-  'Denmark': 8,
-  'Estonia': 9,
-  'Spain': 10,
-  'Finland': 11,
-  'France': 12,
+  Germany: 7,
+  Denmark: 8,
+  Estonia: 9,
+  Spain: 10,
+  Finland: 11,
+  France: 12,
   'United Kingdom': 13,
-  'Greece': 14,
-  'Hungary': 15,
-  'Ireland': 16,
-  'Italy': 17,
-  'Liechtenstein': 18,
-  'Lithuania': 19,
-  'Luxembourg': 20,
-  'Latvia': 21,
-  'Malta': 22,
-  'Netherlands': 23,
-  'Norway': 24,
-  'Poland': 25,
-  'Portugal': 26,
-  'Romania': 27,
-  'Sweden': 28,
-  'Singapore': 29,
-  'Slovenia': 30,
-  'Slovakia': 31,
-  'Canada': 33,
-  'Croatia': 35,
-  'Japan': 36,
-  'Iceland': 37,
+  Greece: 14,
+  Hungary: 15,
+  Ireland: 16,
+  Italy: 17,
+  Liechtenstein: 18,
+  Lithuania: 19,
+  Luxembourg: 20,
+  Latvia: 21,
+  Malta: 22,
+  Netherlands: 23,
+  Norway: 24,
+  Poland: 25,
+  Portugal: 26,
+  Romania: 27,
+  Sweden: 28,
+  Singapore: 29,
+  Slovenia: 30,
+  Slovakia: 31,
+  Canada: 33,
+  Croatia: 35,
+  Japan: 36,
+  Iceland: 37,
 }
 
 function extractSellerName(row: Element): string {
@@ -135,7 +139,10 @@ function normalizeDecimalString(number: string): string {
 }
 
 function parsePriceCurrency(raw: string): [number, string] {
-  const cleaned = raw.replace(/\u00a0/g, ' ').replace(/\u202f/g, ' ').trim()
+  const cleaned = raw
+    .replace(/\u00a0/g, ' ')
+    .replace(/\u202f/g, ' ')
+    .trim()
   if (!cleaned) {
     throw new Error('Empty price string')
   }
@@ -219,7 +226,12 @@ export function ParseSellerListings(body: string): Seller[] {
       listing.Price = price
       listing.Currency = currency
     } catch (error) {
-      console.error(">>> Unable to parse price for this seller row: ", row.outerHTML, "\nError: ", error)
+      console.error(
+        '>>> Unable to parse price for this seller row: ',
+        row.outerHTML,
+        '\nError: ',
+        error
+      )
     }
 
     if (!listing.SellerName && listing.Price === 0 && listing.CardsAmmount === 0) {
@@ -276,7 +288,7 @@ async function queryCardPage(query: CardQuery): Promise<{ html: string; url: str
     query.Card.CardName,
     query.Card.EditionName,
     query.Filters,
-    (h) => h.includes('Sammelkartenmarkt'),
+    (h) => h.includes('Sammelkartenmarkt')
   )
   lastFetchTime = Date.now()
   return result
@@ -290,11 +302,13 @@ export async function GetCardSellers(query: CardQuery): Promise<Seller[]> {
   const sellers = ParseSellerListings(body)
 
   if (sellers.length === 0) {
-    console.error('[CardmarketService] GetCardSellers: no sellers found for card:', query.Card.CardName)
+    console.error(
+      '[CardmarketService] GetCardSellers: no sellers found for card:',
+      query.Card.CardName
+    )
     throw new Error('Sellers not found: Empty list')
   }
 
   query.Card.Link = cardUrl
   return sellers.map((s) => ({ ...s }))
 }
-

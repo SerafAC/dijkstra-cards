@@ -1,4 +1,10 @@
-import type { AppSettings, CardFilters, PersistedSearchResults, RecentDeck, RecentProject } from '../types/models'
+import type {
+  AppSettings,
+  CardFilters,
+  PersistedSearchResults,
+  RecentDeck,
+  RecentProject,
+} from '../types/models'
 
 const RECENT_DECKS_KEY = 'recentDecks'
 const RECENT_PROJECTS_KEY = 'recentProjects'
@@ -49,7 +55,12 @@ export const StorageService = {
   async addRecentDeck(fileName: string, csvContent: string, cardCount: number): Promise<void> {
     const decks = await this.getRecentDecks()
     const filtered = decks.filter((d) => d.fileName !== fileName)
-    const entry: RecentDeck = { fileName, csvContent, cardCount, loadedAt: new Date().toISOString() }
+    const entry: RecentDeck = {
+      fileName,
+      csvContent,
+      cardCount,
+      loadedAt: new Date().toISOString(),
+    }
     await storageSet({ [RECENT_DECKS_KEY]: [entry, ...filtered].slice(0, MAX_RECENT_DECKS) })
   },
 
@@ -62,10 +73,19 @@ export const StorageService = {
     return (await storageGet<RecentProject[]>(RECENT_PROJECTS_KEY)) ?? []
   },
 
-  async addRecentProject(fileName: string, projectContent: string, cardCount: number): Promise<void> {
+  async addRecentProject(
+    fileName: string,
+    projectContent: string,
+    cardCount: number
+  ): Promise<void> {
     const projects = await this.getRecentProjects()
     const filtered = projects.filter((p) => p.fileName !== fileName)
-    const entry: RecentProject = { fileName, projectContent, cardCount, loadedAt: new Date().toISOString() }
+    const entry: RecentProject = {
+      fileName,
+      projectContent,
+      cardCount,
+      loadedAt: new Date().toISOString(),
+    }
     await storageSet({ [RECENT_PROJECTS_KEY]: [entry, ...filtered].slice(0, MAX_RECENT_PROJECTS) })
   },
 

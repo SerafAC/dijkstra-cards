@@ -25,7 +25,6 @@ function handleNext() {
   router.push('/search')
 }
 
-
 onMounted(async () => {
   cards.value = await CardService.GetCards()
 
@@ -109,8 +108,6 @@ onBeforeUnmount(() => {
           </template>
         </Column>
       </DataTable>
-
-
     </div>
   </div>
 </template>
@@ -144,8 +141,6 @@ onBeforeUnmount(() => {
   }
 }
 
-
-
 .card {
   display: flex;
   flex-direction: column;
@@ -161,5 +156,4 @@ onBeforeUnmount(() => {
     height: 100%;
   }
 }
-
 </style>

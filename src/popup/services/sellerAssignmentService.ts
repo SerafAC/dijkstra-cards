@@ -46,7 +46,7 @@ function buildSellerCoverage(offers: Map<string, Seller[]>): Map<string, SellerC
  */
 function selectBestSeller(
   coverage: Map<string, SellerCoverage>,
-  assigned: Set<string>,
+  assigned: Set<string>
 ): [string, number] {
   let bestKey = ''
   let bestCount = 0
@@ -82,7 +82,7 @@ function selectBestSeller(
  */
 export async function FindOptimalSellers(
   cards: Card[],
-  offersMap: Map<string, Seller[]>,
+  offersMap: Map<string, Seller[]>
 ): Promise<Record<string, Seller>> {
   if (cards.length === 0) {
     console.error('[SellerAssignmentService] FindOptimalSellers: no cards provided for assignment')

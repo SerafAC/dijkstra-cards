@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { CardService } from '../services/cardService'
 import { StorageService } from '../services/storageService'
 import { ProjectService } from '../services/projectService'
-import { useProjectStore } from '../stores/projectStore'
 import type { RecentDeck, RecentProject } from '../types/models'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
@@ -12,22 +11,19 @@ import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 
-type RecentItem =
-  | ({ kind: 'deck' } & RecentDeck)
-  | ({ kind: 'project' } & RecentProject)
+type RecentItem = ({ kind: 'deck' } & RecentDeck) | ({ kind: 'project' } & RecentProject)
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const recentDecks = ref<RecentDeck[]>([])
 const recentProjects = ref<RecentProject[]>([])
-const { isProjectLoaded, currentProjectName } = useProjectStore()
 
 const recentItems = computed<RecentItem[]>(() => {
   const decks: RecentItem[] = recentDecks.value.map((d) => ({ kind: 'deck', ...d }))
   const projects: RecentItem[] = recentProjects.value.map((p) => ({ kind: 'project', ...p }))
   return [...decks, ...projects].sort(
-    (a, b) => new Date(b.loadedAt).getTime() - new Date(a.loadedAt).getTime(),
+    (a, b) => new Date(b.loadedAt).getTime() - new Date(a.loadedAt).getTime()
   )
 })
 
@@ -147,8 +143,19 @@ function formatDate(iso: string): string {
       </Message>
 
       <div v-if="!loading" class="card actions">
-        <Button label="Open Deck Export" icon="pi pi-upload" :loading="loading" @click="onOpenDeck" />
-        <Button label="Open Project" icon="pi pi-folder-open" severity="secondary" :loading="loading" @click="onOpenProject" />
+        <Button
+          label="Open Deck Export"
+          icon="pi pi-upload"
+          :loading="loading"
+          @click="onOpenDeck"
+        />
+        <Button
+          label="Open Project"
+          icon="pi pi-folder-open"
+          severity="secondary"
+          :loading="loading"
+          @click="onOpenProject"
+        />
       </div>
 
       <div v-if="loading" class="status">
