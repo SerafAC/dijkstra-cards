@@ -1,10 +1,7 @@
 import type { Card } from '../types/models'
 import { BuildCardPageURL } from './cardmarketService'
 import { StorageService } from './storageService'
-
-let storedCards: Card[] = []
-let currentDeckFileName: string = ''
-let currentCsvContent: string = ''
+import { saveDeckState } from '../stores/cardsStore'
 
 function generateId(): string {
   return crypto.randomUUID()
@@ -55,13 +52,11 @@ async function loadFromCSV(csvContent: string, fileName: string): Promise<boolea
     console.warn('[CardService] No cards parsed from CSV:', fileName)
     return false
   }
-  storedCards = cards
-  currentDeckFileName = fileName
-  currentCsvContent = csvContent
-  for (const card of storedCards) {
+  for (const card of cards) {
     card.Link = BuildCardPageURL(card)
   }
-  await StorageService.addRecentDeck(fileName, csvContent, storedCards.length)
+  saveDeckState(cards, fileName, csvContent)
+  await StorageService.addRecentDeck(fileName, csvContent, cards.length)
   return true
 }
 
@@ -100,17 +95,5 @@ export const CardService = {
       console.error('[CardService] Failed to load from recent deck:', fileName, err)
       return false
     }
-  },
-
-  GetCards(): Promise<Card[]> {
-    return Promise.resolve([...storedCards])
-  },
-
-  GetDeckFileName(): string {
-    return currentDeckFileName
-  },
-
-  GetCsvContent(): string {
-    return currentCsvContent
   },
 }

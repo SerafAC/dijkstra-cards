@@ -9,7 +9,12 @@ import type {
 } from '../types/models'
 import { CardService } from './cardService'
 import { StorageService } from './storageService'
-import { saveSelectedCards } from '../stores/selectedCards'
+import {
+  getCsvContent,
+  getStoredDeckFileName,
+  saveSelectedCards,
+  useAllCards,
+} from '../stores/cardsStore'
 import {
   setProjectFileHandle,
   setProjectFileName,
@@ -24,8 +29,8 @@ function buildProjectData(
   persistedErrors: PersistedError[],
   sellersByCard: Map<string, Seller[]>
 ): ProjectFile {
-  const csvContent = CardService.GetCsvContent()
-  const deckFileName = CardService.GetDeckFileName()
+  const csvContent = getCsvContent()
+  const deckFileName = getStoredDeckFileName()
 
   const persistedSellersByCard: PersistedSellersByCard[] = []
   for (const [cardId, sellers] of sellersByCard) {
@@ -87,7 +92,7 @@ export const ProjectService = {
     persistedErrors: PersistedError[],
     sellersByCard: Map<string, Seller[]>
   ): Promise<boolean> {
-    const deckFileName = CardService.GetDeckFileName()
+    const deckFileName = getStoredDeckFileName()
     const defaultName = deckFileName
       ? deckFileName.replace(/\.csv$/i, '') + '.dcproject.json'
       : 'project.dcproject.json'
@@ -255,7 +260,8 @@ export const ProjectService = {
     }
 
     // Restore selected cards
-    const allCards = await CardService.GetCards()
+    const allCards = useAllCards().value
+
     if (project.selectedCards?.length) {
       const selectedSet = new Set(
         project.selectedCards.map(

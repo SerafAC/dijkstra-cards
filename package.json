@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write src/",
-    "format:check": "prettier --check src/"
+    "format:check": "prettier --check src/",
+    "check-all": "pnpm lint && pnpm type-check && pnpm format:check && pnpm build"
   },
   "dependencies": {
     "@primevue/themes": "^4.2.5",

@@ -5,15 +5,14 @@ import {
   clearSelectedCards,
   useSelectedCards,
   getStoredDeckFileName,
-} from '../stores/selectedCards'
+  useAllCards,
+} from '../stores/cardsStore'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
 import { GetCardSellers, closeBrowsingSession } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
-import { CardService } from '../services/cardService'
 import { Browser } from '../services/browser'
 import { ProjectService } from '../services/projectService'
 import { useProjectStore } from '../stores/projectStore'
-import { sleep } from '../utils/async'
 import { lastUpdatedColor, formatDate } from '../utils/dateUtils'
 import type {
   Card,
@@ -33,6 +32,7 @@ import Select from 'primevue/select'
 
 const router = useRouter()
 const selectedCards = useSelectedCards()
+const cards = useAllCards()
 const hasCards = computed(() => selectedCards.value.length > 0)
 const assignments: Ref<Record<string, Seller>> = ref({})
 const cardFetchErrors: Ref<SellerFetchStatus[]> = ref([])
@@ -153,7 +153,7 @@ function cardKey(card: { CardName: string; EditionName: string }): string {
 }
 
 async function restorePersistedResults() {
-  const deckName = CardService.GetDeckFileName() || getStoredDeckFileName()
+  const deckName = getStoredDeckFileName()
   if (!deckName) return
 
   const saved = await StorageService.getSearchResults(deckName)
@@ -207,7 +207,7 @@ async function restorePersistedResults() {
 }
 
 async function persistResults() {
-  const deckName = CardService.GetDeckFileName()
+  const deckName = getStoredDeckFileName()
   if (!deckName) {
     console.warn('>>> Cannot persist results, no deck name')
     return
@@ -285,7 +285,7 @@ async function saveProjectAs() {
 }
 
 async function removeAssignments() {
-  const deckName = CardService.GetDeckFileName()
+  const deckName = getStoredDeckFileName()
   if (deckName) {
     await StorageService.removeSearchResults(deckName)
   }
@@ -445,8 +445,6 @@ async function assignSellers() {
       } finally {
         fetchProgress.value += 1
       }
-
-      await sleep(1000)
     }
 
     const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
@@ -747,8 +745,8 @@ async function retrySearch(cardId: string) {
       </div>
 
       <div v-if="hasAssignments" class="summary-card">
-        <h3>Cards in deck: {{ selectedCards.length }}</h3>
-        <h3>Assigned cards: {{ assignedCardsCount }}</h3>
+        <h3>Cards in deck: {{ cards.length }}</h3>
+        <h3>Assigned cards: {{ assignedCardsCount }} / {{ selectedCards.length }}</h3>
         <h3>Unique sellers: {{ uniqueSellersCount }}</h3>
         <h3>Total price: {{ totalPrice.toFixed(2) }}</h3>
       </div>

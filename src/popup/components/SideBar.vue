@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useSelectedCards } from '../stores/selectedCards'
+import { useSelectedCards } from '../stores/cardsStore'
 import { useProjectStore } from '../stores/projectStore'
 import Button from 'primevue/button'
 import ToggleSwitch from 'primevue/toggleswitch'

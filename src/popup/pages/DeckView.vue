@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { CardService } from '../services/cardService'
-import { saveSelectedCards, useSelectedCards, getStoredDeckFileName } from '../stores/selectedCards'
+import {
+  saveSelectedCards,
+  useSelectedCards,
+  getStoredDeckFileName,
+  useAllCards,
+} from '../stores/cardsStore'
 import { Browser } from '../services/browser'
 import { lastUpdatedColor, formatDate } from '../utils/dateUtils'
 import type { Card } from '../types/models'
@@ -12,7 +16,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 
 const errorMsg = ref<string | null>(null)
-const cards = ref<Card[]>([])
+const cards = useAllCards()
 const selectedCards = ref<Card[]>([])
 const router = useRouter()
 let navigatingToSearch = false
@@ -20,14 +24,12 @@ let navigatingToSearch = false
 function handleNext() {
   if (!selectedCards.value.length) return
 
-  saveSelectedCards(selectedCards.value, CardService.GetDeckFileName())
+  saveSelectedCards(selectedCards.value, getStoredDeckFileName())
   navigatingToSearch = true
   router.push('/search')
 }
 
-onMounted(async () => {
-  cards.value = await CardService.GetCards()
-
+onMounted(() => {
   const storedCards = useSelectedCards()
   if (storedCards.value.length) {
     const storedById = new Map(storedCards.value.map((c) => [c.Id, c]))
@@ -41,7 +43,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (!navigatingToSearch) {
-    saveSelectedCards(selectedCards.value, CardService.GetDeckFileName() || getStoredDeckFileName())
+    saveSelectedCards(selectedCards.value, getStoredDeckFileName())
   }
 })
 </script>

@@ -21,6 +21,7 @@ pnpm lint             # ESLint
 pnpm lint:fix         # ESLint with auto-fix
 pnpm format           # Prettier format src/
 pnpm format:check     # Prettier check only
+pnpm check-all        # Runs lint, type-check, format:check and build
 ```
 
 ## Architecture

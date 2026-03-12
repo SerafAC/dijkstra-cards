@@ -1,3 +1,5 @@
+import { sleep } from '../utils/async'
+
 const INITIAL_LOAD_TIMEOUT_MS = 30_000
 const POLL_INTERVAL_MS = 2_000
 const POLL_TIMEOUT_MS = 10 * 60 * 1_000 // 10 minutes
@@ -64,20 +66,23 @@ function navigateTab(tabId: number, url: string): Promise<void> {
   })
 }
 
-function executeScript<T>(
+function executeScript<T, Args extends unknown[]>(
   tabId: number,
-  func: (...args: never[]) => T,
-  args?: unknown[]
+  func: (...args: Args) => T,
+  args?: Args
 ): Promise<T> {
   return new Promise((resolve, reject) => {
-    chrome.scripting.executeScript({ target: { tabId }, func, args: args ?? [] }, (results) => {
-      if (chrome.runtime.lastError) {
-        console.error('[TabFetchService] executeScript failed:', chrome.runtime.lastError.message)
-        reject(new Error(chrome.runtime.lastError.message))
-        return
+    chrome.scripting.executeScript(
+      { target: { tabId }, func, args: args ?? ([] as unknown as Args) },
+      (results) => {
+        if (chrome.runtime.lastError) {
+          console.error('[TabFetchService] executeScript failed:', chrome.runtime.lastError.message)
+          reject(new Error(chrome.runtime.lastError.message))
+          return
+        }
+        resolve(results?.[0]?.result as T)
       }
-      resolve(results?.[0]?.result as T)
-    })
+    )
   })
 }
 
@@ -193,10 +198,6 @@ function readTabHtml(tabId: number): Promise<string> {
       }
     )
   })
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function pollUntilPredicate(
@@ -339,6 +340,8 @@ async function applyFiltersAndRead(
 
   let url: string
   if (hasFilters) {
+    // Delay page reloading too fast one after another
+    await sleep(500)
     url = await applyCardFilters(tabId, filters)
     await waitForTabLoad(tabId)
   } else {
