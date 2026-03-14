@@ -8,7 +8,7 @@ import {
   useAllCards,
 } from '../stores/cardsStore'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
-import { GetCardSellers, closeBrowsingSession } from '../services/cardmarketService'
+import { GetCardSellers, closeBrowsingSession, ParseSellerListings } from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
 import { Browser } from '../services/browser'
 import { ProjectService } from '../services/projectService'
@@ -23,9 +23,11 @@ import type {
   Seller,
   SellerFetchStatus,
 } from '../types/models'
+import { readTabHtml } from '../services/tabFetchService'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import Dialog from 'primevue/dialog'
 import ProgressBar from 'primevue/progressbar'
 import MultiSelect from 'primevue/multiselect'
 import Select from 'primevue/select'
@@ -342,6 +344,12 @@ const failedCards = computed(() =>
 const hasFailedCards = computed(() => failedCards.value.length > 0)
 const failedSectionCollapsed = ref(true)
 
+const replaceModalVisible = ref(false)
+const replaceTargetCardId = ref<string | null>(null)
+const replaceError = ref<string | null>(null)
+const replaceErrorModalVisible = ref(false)
+const isReplacing = ref(false)
+
 const pendingCards = computed(() => {
   const assignedIds = new Set(Object.keys(assignments.value))
   const errorIds = new Set(cardFetchErrors.value.map((e) => e.cardId))
@@ -500,6 +508,104 @@ async function reloadCardSellers(cardId: string) {
 
   await persistResults()
   reloadingCardId.value = null
+}
+
+function openReplaceModal(cardId: string) {
+  replaceTargetCardId.value = cardId
+  replaceModalVisible.value = true
+}
+
+function closeReplaceModal() {
+  replaceModalVisible.value = false
+  replaceTargetCardId.value = null
+}
+
+function searchReplacementCard() {
+  const card = selectedCards.value.find((c) => c.Id === replaceTargetCardId.value)
+  if (card) {
+    Browser.OpenURL(searchCardByNameUrl(card.CardName))
+  }
+}
+
+function parseCardNameFromUrl(url: string): { cardName: string; editionName: string } {
+  try {
+    const urlObj = new URL(url)
+    const parts = urlObj.pathname.split('/').filter(Boolean)
+    const singlesIndex = parts.indexOf('Singles')
+    if (singlesIndex === -1 || parts.length < singlesIndex + 3) {
+      return { cardName: '', editionName: '' }
+    }
+    const editionSlug = parts[singlesIndex + 1]
+    const cardSlug = parts[singlesIndex + 2]
+    const slugToName = (slug: string) =>
+      slug
+        .split('-')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+    return { cardName: slugToName(cardSlug), editionName: slugToName(editionSlug) }
+  } catch {
+    return { cardName: '', editionName: '' }
+  }
+}
+
+async function getCardmarketCardTab(): Promise<chrome.tabs.Tab | null> {
+  return new Promise((resolve) => {
+    chrome.tabs.query({ windowType: 'normal' }, (tabs) => {
+      const cardmarketTabs = tabs.filter(
+        (tab) => tab.url?.includes('cardmarket.com') && tab.url?.includes('/Products/Singles/')
+      )
+      const activeTab = cardmarketTabs.find((t) => t.active) || cardmarketTabs[0] || null
+      resolve(activeTab)
+    })
+  })
+}
+
+async function handleReplace() {
+  if (!replaceTargetCardId.value) return
+  isReplacing.value = true
+  try {
+    const tab = await getCardmarketCardTab()
+    if (!tab?.id || !tab.url) {
+      replaceError.value =
+        'No Cardmarket card page found. Please open a card page on Cardmarket and try again.'
+      replaceErrorModalVisible.value = true
+      return
+    }
+
+    const html = await readTabHtml(tab.id)
+    const sellers = ParseSellerListings(html)
+    if (sellers.length === 0) {
+      replaceError.value =
+        'The current Cardmarket page has no sellers. Please open a card page with available sellers.'
+      replaceErrorModalVisible.value = true
+      return
+    }
+
+    const { cardName, editionName } = parseCardNameFromUrl(tab.url)
+    const cardId = replaceTargetCardId.value
+    const card = selectedCards.value.find((c) => c.Id === cardId)
+    if (!card) return
+
+    card.CardName = cardName || card.CardName
+    card.EditionName = editionName || card.EditionName
+    card.Link = tab.url
+    card.LastUpdated = new Date().toISOString()
+
+    sellersByCard.set(cardId, sellers)
+    cardFetchErrors.value = cardFetchErrors.value.filter((e) => e.cardId !== cardId)
+
+    const newAssignments = await FindOptimalSellers(selectedCards.value, sellersByCard)
+    assignments.value = { ...assignments.value, ...newAssignments }
+
+    await persistResults()
+    closeReplaceModal()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    replaceError.value = `Replace failed: ${msg}`
+    replaceErrorModalVisible.value = true
+  } finally {
+    isReplacing.value = false
+  }
 }
 
 async function retrySearch(cardId: string) {
@@ -737,6 +843,15 @@ async function retrySearch(cardId: string) {
                     :loading="retryingCardId === slotProps.data.id"
                     @click="retrySearch(slotProps.data.id)"
                   />
+                  <Button
+                    label="Replace"
+                    icon="pi pi-arrow-right-arrow-left"
+                    size="small"
+                    severity="secondary"
+                    outlined
+                    :disabled="isSearching"
+                    @click="openReplaceModal(slotProps.data.id)"
+                  />
                 </div>
               </template>
             </Column>
@@ -807,6 +922,15 @@ async function retrySearch(cardId: string) {
                   :loading="reloadingCardId === slotProps.data.id"
                   @click="reloadCardSellers(slotProps.data.id)"
                 />
+                <Button
+                  label="Replace"
+                  icon="pi pi-arrow-right-arrow-left"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  :disabled="isSearching"
+                  @click="openReplaceModal(slotProps.data.id)"
+                />
               </div>
             </template>
           </Column>
@@ -863,6 +987,51 @@ async function retrySearch(cardId: string) {
       <i class="pi pi-info-circle"></i>
       <p>No cards selected. Please go back and choose cards from the deck table.</p>
     </div>
+
+    <Dialog
+      v-model:visible="replaceModalVisible"
+      modal
+      header="Replace Card"
+      :style="{ width: '480px' }"
+    >
+      <div class="replace-modal-content">
+        <p>
+          Open a card's page that you want to replace this one with. You can use this Search Card
+          button to search for the current card.
+        </p>
+        <Button
+          label="Search Card"
+          icon="pi pi-search"
+          size="small"
+          severity="secondary"
+          outlined
+          @click="searchReplacementCard"
+        />
+        <p>When ready click Replace.</p>
+        <p>You can use it to fix a broken card or to change card's edition.</p>
+      </div>
+      <template #footer>
+        <Button label="Cancel" severity="secondary" outlined @click="closeReplaceModal" />
+        <Button
+          label="Replace"
+          icon="pi pi-arrow-right-arrow-left"
+          :loading="isReplacing"
+          @click="handleReplace"
+        />
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="replaceErrorModalVisible"
+      modal
+      header="Replace Failed"
+      :style="{ width: '400px' }"
+    >
+      <p>{{ replaceError }}</p>
+      <template #footer>
+        <Button label="OK" @click="replaceErrorModalVisible = false" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -1074,5 +1243,15 @@ async function retrySearch(cardId: string) {
   border: 1px dashed var(--surface-border);
   border-radius: 8px;
   color: var(--text-color-secondary);
+}
+
+.replace-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  p {
+    margin: 0;
+  }
 }
 </style>
