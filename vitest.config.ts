@@ -8,6 +8,11 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
   },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('src', import.meta.url)),
+    },
+  },
   css: {
     preprocessorOptions: {
       scss: {
@@ -16,11 +21,6 @@ export default defineConfig({
           @use "@/popup/scss/mixins.scss";
         `,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('src', import.meta.url)),
     },
   },
 })
