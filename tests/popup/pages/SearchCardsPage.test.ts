@@ -80,8 +80,6 @@ vi.mock('@/popup/utils/dateUtils', () => ({
 import SearchCardsPage from '@/popup/pages/SearchCardsPage.vue'
 import { StorageService } from '@/popup/services/storageService'
 import { ProjectService } from '@/popup/services/projectService'
-import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
 import ProgressBar from 'primevue/progressbar'
 
 const mockSeller1: Seller = {
