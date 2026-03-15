@@ -8,7 +8,11 @@ import {
   useAllCards,
 } from '../stores/cardsStore'
 import { FindOptimalSellers } from '../services/sellerAssignmentService'
-import { GetCardSellers, closeBrowsingSession, ParseSellerListings } from '../services/cardmarketService'
+import {
+  GetCardSellers,
+  closeBrowsingSession,
+  ParseSellerListings,
+} from '../services/cardmarketService'
 import { StorageService } from '../services/storageService'
 import { Browser } from '../services/browser'
 import { ProjectService } from '../services/projectService'
