@@ -13,10 +13,13 @@ import type {
 
 const mockGetCardSellers = vi.fn()
 const mockCloseBrowsingSession = vi.fn()
+const mockParseSellerListings = vi.fn()
+const mockReadTabHtml = vi.fn()
 const mockFindOptimalSellers = vi.fn()
 const mockGetStoredDeckFileName = vi.fn(() => 'test-deck.csv')
 const mockClearSelectedCards = vi.fn()
 const mockOpenURL = vi.fn()
+const mockTabsQuery = vi.fn()
 
 const allCardsRef = ref<Card[]>([])
 const selectedCardsRef = ref<Card[]>([])
@@ -45,6 +48,11 @@ vi.mock('@/popup/stores/projectStore', () => ({
 vi.mock('@/popup/services/cardmarketService', () => ({
   GetCardSellers: (...args: unknown[]) => mockGetCardSellers(...args),
   closeBrowsingSession: () => mockCloseBrowsingSession(),
+  ParseSellerListings: (...args: unknown[]) => mockParseSellerListings(...args),
+}))
+
+vi.mock('@/popup/services/tabFetchService', () => ({
+  readTabHtml: (...args: unknown[]) => mockReadTabHtml(...args),
 }))
 
 vi.mock('@/popup/services/sellerAssignmentService', () => ({
@@ -187,6 +195,11 @@ type SearchVm = {
   fetchTotal: number
   fetchPercentage: number
   failedSectionCollapsed: boolean
+  replaceModalVisible: boolean
+  replaceTargetCardId: string | null
+  replaceError: string | null
+  replaceErrorModalVisible: boolean
+  isReplacing: boolean
   assignSellers: () => Promise<void>
   reloadCardSellers: (id: string) => Promise<void>
   retrySearch: (id: string) => Promise<void>
@@ -196,6 +209,11 @@ type SearchVm = {
   saveProjectAs: () => Promise<void>
   goBack: () => void
   resetSelection: () => void
+  openReplaceModal: (cardId: string) => void
+  closeReplaceModal: () => void
+  searchReplacementCard: () => void
+  handleReplace: () => Promise<void>
+  parseCardNameFromUrl: (url: string) => { cardName: string; editionName: string }
 }
 
 function vm(wrapper: ReturnType<typeof mountComponent>): SearchVm {
@@ -219,6 +237,12 @@ describe('SearchCardsPage', () => {
     vi.mocked(ProjectService.saveAs).mockResolvedValue(undefined)
     mockFindOptimalSellers.mockResolvedValue({})
     mockGetCardSellers.mockResolvedValue([])
+    mockReadTabHtml.mockResolvedValue('<html></html>')
+    mockParseSellerListings.mockReturnValue([])
+    mockTabsQuery.mockImplementation(
+      (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([]),
+    )
+    vi.stubGlobal('chrome', { tabs: { query: mockTabsQuery } })
   })
 
   describe('rendering', () => {
@@ -1133,6 +1157,314 @@ describe('SearchCardsPage', () => {
 
       expect(StorageService.saveSearchResults).not.toHaveBeenCalled()
       consoleSpy.mockRestore()
+    })
+  })
+
+  describe('parseCardNameFromUrl', () => {
+    it('parses card name and edition from a valid Cardmarket URL', async () => {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      const result = vm(wrapper).parseCardNameFromUrl(
+        'https://www.cardmarket.com/en/Magic/Products/Singles/dominaria-united/llanowar-elves',
+      )
+      expect(result.cardName).toBe('Llanowar Elves')
+      expect(result.editionName).toBe('Dominaria United')
+    })
+
+    it('handles URL with query parameters', async () => {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      const result = vm(wrapper).parseCardNameFromUrl(
+        'https://www.cardmarket.com/en/Magic/Products/Singles/alpha/lightning-bolt?language=1',
+      )
+      expect(result.cardName).toBe('Lightning Bolt')
+      expect(result.editionName).toBe('Alpha')
+    })
+
+    it('returns empty strings when Singles segment is missing', async () => {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      const result = vm(wrapper).parseCardNameFromUrl(
+        'https://www.cardmarket.com/en/Magic/Products/Search?searchString=bolt',
+      )
+      expect(result.cardName).toBe('')
+      expect(result.editionName).toBe('')
+    })
+
+    it('returns empty strings for a malformed URL', async () => {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      const result = vm(wrapper).parseCardNameFromUrl('not-a-url')
+      expect(result.cardName).toBe('')
+      expect(result.editionName).toBe('')
+    })
+  })
+
+  describe('openReplaceModal / closeReplaceModal', () => {
+    it('openReplaceModal sets replaceTargetCardId and shows modal', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+
+      expect(vm(wrapper).replaceTargetCardId).toBe('uuid-1')
+      expect(vm(wrapper).replaceModalVisible).toBe(true)
+    })
+
+    it('closeReplaceModal hides modal and clears target card ID', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      vm(wrapper).closeReplaceModal()
+
+      expect(vm(wrapper).replaceModalVisible).toBe(false)
+      expect(vm(wrapper).replaceTargetCardId).toBeNull()
+    })
+  })
+
+  describe('searchReplacementCard', () => {
+    it('opens Cardmarket search URL for the target card', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      vm(wrapper).searchReplacementCard()
+
+      expect(mockOpenURL).toHaveBeenCalledWith(
+        expect.stringContaining('lightning%20bolt'),
+      )
+    })
+
+    it('does nothing when no target card is set', async () => {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).searchReplacementCard()
+
+      expect(mockOpenURL).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('handleReplace', () => {
+    const cardmarketTab = {
+      id: 42,
+      url: 'https://www.cardmarket.com/en/Magic/Products/Singles/alpha/lightning-bolt',
+      active: true,
+      index: 0,
+      pinned: false,
+      highlighted: false,
+      windowId: 1,
+      incognito: false,
+      selected: false,
+      discarded: false,
+      autoDiscardable: true,
+    } as chrome.tabs.Tab
+
+    it('does nothing when replaceTargetCardId is null', async () => {
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(mockTabsQuery).not.toHaveBeenCalled()
+    })
+
+    it('shows error modal when no Cardmarket tab is found', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([]),
+      )
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(vm(wrapper).replaceErrorModalVisible).toBe(true)
+      expect(vm(wrapper).replaceError).toContain('No Cardmarket card page found')
+      expect(vm(wrapper).replaceModalVisible).toBe(true)
+    })
+
+    it('shows error modal when the page has no sellers', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockParseSellerListings.mockReturnValue([])
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(vm(wrapper).replaceErrorModalVisible).toBe(true)
+      expect(vm(wrapper).replaceError).toContain('no sellers')
+      expect(vm(wrapper).replaceModalVisible).toBe(true)
+    })
+
+    it('updates card details and assignments on success', async () => {
+      const card = { ...mockCard1 }
+      selectedCardsRef.value = [card]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockParseSellerListings.mockReturnValue([mockSeller1])
+      mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(card.CardName).toBe('Lightning Bolt')
+      expect(card.EditionName).toBe('Alpha')
+      expect(card.Link).toBe(cardmarketTab.url)
+      expect(card.LastUpdated).toBeDefined()
+      expect(vm(wrapper).assignments['uuid-1']).toEqual(mockSeller1)
+    })
+
+    it('removes the card from errors list when replace succeeds', async () => {
+      const card = { ...mockCard1 }
+      selectedCardsRef.value = [card]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockParseSellerListings.mockReturnValue([mockSeller1])
+      mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).cardFetchErrors = [
+        {
+          cardId: 'uuid-1',
+          hadError: true,
+          errorMessage: 'Old error',
+          sellersFound: false,
+          fetchAttempted: true,
+        },
+      ]
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(vm(wrapper).cardFetchErrors).toHaveLength(0)
+    })
+
+    it('closes replace modal after successful replace', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockParseSellerListings.mockReturnValue([mockSeller1])
+      mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(vm(wrapper).replaceModalVisible).toBe(false)
+      expect(vm(wrapper).replaceTargetCardId).toBeNull()
+    })
+
+    it('persists results after successful replace', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockParseSellerListings.mockReturnValue([mockSeller1])
+      mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(StorageService.saveSearchResults).toHaveBeenCalled()
+    })
+
+    it('shows error modal when readTabHtml throws', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockReadTabHtml.mockRejectedValue(new Error('Script injection failed'))
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(vm(wrapper).replaceErrorModalVisible).toBe(true)
+      expect(vm(wrapper).replaceError).toContain('Script injection failed')
+    })
+
+    it('prefers the active Cardmarket tab over inactive ones', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      const inactiveTab = { ...cardmarketTab, id: 10, active: false }
+      const activeTab = {
+        ...cardmarketTab,
+        id: 99,
+        active: true,
+        url: 'https://www.cardmarket.com/en/Magic/Products/Singles/beta/dark-ritual',
+      }
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) =>
+          cb([inactiveTab, activeTab]),
+      )
+      mockParseSellerListings.mockReturnValue([mockSeller1])
+      mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      await vm(wrapper).handleReplace()
+      await flushPromises()
+
+      expect(mockReadTabHtml).toHaveBeenCalledWith(99)
+    })
+
+    it('clears isReplacing after completion', async () => {
+      selectedCardsRef.value = [{ ...mockCard1 }]
+      mockTabsQuery.mockImplementation(
+        (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockParseSellerListings.mockReturnValue([mockSeller1])
+      mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })
+
+      const wrapper = mountComponent()
+      await flushPromises()
+
+      vm(wrapper).openReplaceModal('uuid-1')
+      const promise = vm(wrapper).handleReplace()
+      await promise
+      await flushPromises()
+
+      expect(vm(wrapper).isReplacing).toBe(false)
     })
   })
 })

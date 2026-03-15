@@ -178,7 +178,7 @@ function readTabUrl(tabId: number): Promise<string> {
   return executeScript(tabId, () => window.location.href)
 }
 
-function readTabHtml(tabId: number): Promise<string> {
+export function readTabHtml(tabId: number): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.scripting.executeScript(
       { target: { tabId }, func: () => document.documentElement.outerHTML },
