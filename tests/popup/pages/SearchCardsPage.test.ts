@@ -213,7 +213,7 @@ type SearchVm = {
   closeReplaceModal: () => void
   searchReplacementCard: () => void
   handleReplace: () => Promise<void>
-  parseCardNameFromUrl: (url: string) => { cardName: string; editionName: string }
+  parseCardNameFromHtml: (html: string) => { cardName: string; editionName: string }
 }
 
 function vm(wrapper: ReturnType<typeof mountComponent>): SearchVm {
@@ -1160,45 +1160,49 @@ describe('SearchCardsPage', () => {
     })
   })
 
-  describe('parseCardNameFromUrl', () => {
-    it('parses card name and edition from a valid Cardmarket URL', async () => {
+  describe('parseCardNameFromHtml', () => {
+    function makeHtml(cardName: string, editionName: string) {
+      return `<html><body><div class="page-title-container"><h1>${cardName}<span class="h4">${editionName}</span></h1></div></body></html>`
+    }
+
+    it('parses card name and edition from page HTML', async () => {
       const wrapper = mountComponent()
       await flushPromises()
 
-      const result = vm(wrapper).parseCardNameFromUrl(
-        'https://www.cardmarket.com/en/Magic/Products/Singles/dominaria-united/llanowar-elves',
+      const result = vm(wrapper).parseCardNameFromHtml(
+        makeHtml('Llanowar Elves', 'Dominaria United'),
       )
       expect(result.cardName).toBe('Llanowar Elves')
       expect(result.editionName).toBe('Dominaria United')
     })
 
-    it('handles URL with query parameters', async () => {
+    it('extracts only the direct h1 text, ignoring the nested span', async () => {
       const wrapper = mountComponent()
       await flushPromises()
 
-      const result = vm(wrapper).parseCardNameFromUrl(
-        'https://www.cardmarket.com/en/Magic/Products/Singles/alpha/lightning-bolt?language=1',
+      const result = vm(wrapper).parseCardNameFromHtml(
+        makeHtml('Lightning Bolt', 'Alpha'),
       )
       expect(result.cardName).toBe('Lightning Bolt')
-      expect(result.editionName).toBe('Alpha')
+      expect(result.cardName).not.toContain('Alpha')
     })
 
-    it('returns empty strings when Singles segment is missing', async () => {
+    it('trims whitespace from both values', async () => {
       const wrapper = mountComponent()
       await flushPromises()
 
-      const result = vm(wrapper).parseCardNameFromUrl(
-        'https://www.cardmarket.com/en/Magic/Products/Search?searchString=bolt',
+      const result = vm(wrapper).parseCardNameFromHtml(
+        `<html><body><div class="page-title-container"><h1>  Dark Ritual  <span class="h4">  Beta  </span></h1></div></body></html>`,
       )
-      expect(result.cardName).toBe('')
-      expect(result.editionName).toBe('')
+      expect(result.cardName).toBe('Dark Ritual')
+      expect(result.editionName).toBe('Beta')
     })
 
-    it('returns empty strings for a malformed URL', async () => {
+    it('returns empty strings when the selector is not found', async () => {
       const wrapper = mountComponent()
       await flushPromises()
 
-      const result = vm(wrapper).parseCardNameFromUrl('not-a-url')
+      const result = vm(wrapper).parseCardNameFromHtml('<html><body></body></html>')
       expect(result.cardName).toBe('')
       expect(result.editionName).toBe('')
     })
@@ -1320,6 +1324,9 @@ describe('SearchCardsPage', () => {
       selectedCardsRef.value = [card]
       mockTabsQuery.mockImplementation(
         (_: unknown, cb: (tabs: chrome.tabs.Tab[]) => void) => cb([cardmarketTab]),
+      )
+      mockReadTabHtml.mockResolvedValue(
+        `<html><body><div class="page-title-container"><h1>Lightning Bolt<span class="h4">Alpha</span></h1></div></body></html>`,
       )
       mockParseSellerListings.mockReturnValue([mockSeller1])
       mockFindOptimalSellers.mockResolvedValue({ 'uuid-1': mockSeller1 })

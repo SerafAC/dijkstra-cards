@@ -531,22 +531,19 @@ function searchReplacementCard() {
   }
 }
 
-function parseCardNameFromUrl(url: string): { cardName: string; editionName: string } {
+function parseCardNameFromHtml(html: string): { cardName: string; editionName: string } {
   try {
-    const urlObj = new URL(url)
-    const parts = urlObj.pathname.split('/').filter(Boolean)
-    const singlesIndex = parts.indexOf('Singles')
-    if (singlesIndex === -1 || parts.length < singlesIndex + 3) {
-      return { cardName: '', editionName: '' }
-    }
-    const editionSlug = parts[singlesIndex + 1]
-    const cardSlug = parts[singlesIndex + 2]
-    const slugToName = (slug: string) =>
-      slug
-        .split('-')
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ')
-    return { cardName: slugToName(cardSlug), editionName: slugToName(editionSlug) }
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const h1 = doc.querySelector('.page-title-container h1')
+    if (!h1) return { cardName: '', editionName: '' }
+    const editionSpan = h1.querySelector('span.h4')
+    const editionName = editionSpan?.textContent?.trim() ?? ''
+    const cardName = Array.from(h1.childNodes)
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent ?? '')
+      .join('')
+      .trim()
+    return { cardName, editionName }
   } catch {
     return { cardName: '', editionName: '' }
   }
@@ -585,7 +582,7 @@ async function handleReplace() {
       return
     }
 
-    const { cardName, editionName } = parseCardNameFromUrl(tab.url)
+    const { cardName, editionName } = parseCardNameFromHtml(html)
     const cardId = replaceTargetCardId.value
     const card = selectedCards.value.find((c) => c.Id === cardId)
     if (!card) return
